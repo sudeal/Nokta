@@ -1,0 +1,45 @@
+{
+  "dependencies": {
+    "apis1": {
+      "restored": true,
+      "restoreTime": "2025-01-04T13:53:51.0458887Z"
+    }
+  },
+  "parameters": {
+    "Nokta-AppService.resourceGroupLocation": {
+      "Name": "Nokta-AppService.resourceGroupLocation",
+      "Type": null,
+      "Value": "francecentral"
+    },
+    "Nokta-AppService.resourceName": {
+      "Name": "Nokta-AppService.resourceName",
+      "Type": null,
+      "Value": "Nokta-AppService"
+    },
+    "Nokta-AppService.subscriptionId": {
+      "Name": "Nokta-AppService.subscriptionId",
+      "Type": "subscription",
+      "Value": "6950d096-ab03-47c7-8ed4-eea275e81170"
+    },
+    "apis1.resourceGroupLocation": {
+      "Name": "apis1.resourceGroupLocation",
+      "Type": "location",
+      "Value": "francecentral"
+    },
+    "Nokta-AppService.resourceGroupName": {
+      "Name": "Nokta-AppService.resourceGroupName",
+      "Type": "resourceGroup",
+      "Value": "DefaultResourceGroup-PAR"
+    },
+    "apis1.resourceGroupName": {
+      "Name": "apis1.resourceGroupName",
+      "Type": "resourceGroup",
+      "Value": "DefaultResourceGroup-PAR"
+    },
+    "apis1.subscriptionId": {
+      "Name": "apis1.subscriptionId",
+      "Type": "subscription",
+      "Value": "6950d096-ab03-47c7-8ed4-eea275e81170"
+    }
+  }
+}
