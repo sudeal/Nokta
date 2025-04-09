@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, View, Button, ScrollView } from 'react-native';
+import { StyleSheet, Text, TextInput, View, Button, ScrollView, Alert } from 'react-native';
 
 export default function RegisterScreen({ navigation }) {
   const [name, setName] = useState('');
@@ -9,16 +9,44 @@ export default function RegisterScreen({ navigation }) {
   const [age, setAge] = useState('');
   const [location, setLocation] = useState('');
 
-  const handleRegister = () => {
-    // Add your registration logic here
-    console.log('Name:', name);
-    console.log('Email:', email);
-    console.log('Phone:', phone);
-    console.log('Password:', password);
-    console.log('Age:', age);
-    console.log('Location:', location);
-    // Navigate back to Login after registration
-    navigation.navigate('Login');
+  const handleRegister = async () => {
+    // Boş alan kontrolü
+    if (!name || !email || !phone || !password || !age || !location) {
+      Alert.alert('Hata', 'Boş alan bırakılmamalı!');
+      return;
+    }
+
+    const userData = {
+      name,
+      email,
+      phoneNumber: phone,
+      passwordHash: password, // Ideally, hash the password before sending
+      age: parseInt(age, 10),
+      location,
+    };
+
+    try {
+      const response = await fetch('https://nokta-appservice.azurewebsites.net/api/Users/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'text/plain',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      if (response.ok) {
+        const successMessage = await response.text(); // Yanıtı text olarak alıyoruz
+        Alert.alert('Başarılı', successMessage || 'Kayıt işlemi başarılı!');
+        navigation.navigate('Login');
+      } else {
+        const errorMessage = await response.text(); // Hata mesajını text olarak alıyoruz
+        Alert.alert('Hata', errorMessage || 'Kayıt işlemi başarısız.');
+      }
+    } catch (error) {
+      Alert.alert('Hata', 'Bir hata oluştu. Lütfen tekrar deneyin.');
+      console.error(error);
+    }
   };
 
   return (
