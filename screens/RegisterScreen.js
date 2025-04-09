@@ -20,7 +20,7 @@ export default function RegisterScreen({ navigation }) {
       name,
       email,
       phoneNumber: phone,
-      passwordHash: password, // Ideally, hash the password before sending
+      passwordHash: password,
       age: parseInt(age, 10),
       location,
     };
@@ -36,11 +36,11 @@ export default function RegisterScreen({ navigation }) {
       });
 
       if (response.ok) {
-        const successMessage = await response.text(); // Yanıtı text olarak alıyoruz
+        const successMessage = await response.text();
         Alert.alert('Başarılı', successMessage || 'Kayıt işlemi başarılı!');
         navigation.navigate('Login');
       } else {
-        const errorMessage = await response.text(); // Hata mesajını text olarak alıyoruz
+        const errorMessage = await response.text();
         Alert.alert('Hata', errorMessage || 'Kayıt işlemi başarısız.');
       }
     } catch (error) {
