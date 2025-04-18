@@ -1,44 +1,65 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import useLocation from "../hooks/useLocation";
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Navbar() {
-  const location = useLocation();
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.logo}>NOKTA</Text>
-      <View style={styles.locationWrapper}>
-        <Text style={styles.location}>
-          {location
-            ? `📍 ${location.ilce}, ${location.il}`
-            : "Konum alınıyor..."}
-        </Text>
+    <View style={styles.navbar}>
+      <View style={styles.logoContainer}>
+        <Text style={styles.logo}>Nokta</Text>
+      </View>
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.iconButton}>
+          <Ionicons name="notifications-outline" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.iconButton}>
+          <Ionicons name="person-outline" size={24} color="#fff" />
+        </TouchableOpacity>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "black",
+  navbar: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 15,
+    backgroundColor: "#4a90e2",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  logoContainer: {
+    flexDirection: "row",
     alignItems: "center",
   },
   logo: {
-    color: "white",
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "bold",
+    color: "#fff",
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  locationWrapper: {
-    flex: 1,
-    alignItems: "flex-end",
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  location: {
-    color: "white",
-    fontSize: 14,
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 10,
   },
 });
