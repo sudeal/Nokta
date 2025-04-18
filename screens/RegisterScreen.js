@@ -10,34 +10,82 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Image,
-  Dimensions,
   Animated,
   Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { MotiView } from "moti";
 
-const { width, height } = Dimensions.get("window");
+// Validasyon regex'leri
+const VALIDATION = {
+  name: /^[a-zA-ZğüşıöçĞÜŞİÖÇ\s]{2,50}$/,
+  email: /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/,
+  phone: /^(\+90|0)?[0-9]{10}$/,
+  password:
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/,
+  age: /^([1-9][0-9]|1[0-1][0-9]|120)$/,
+};
+
+// Hata mesajları
+const ERROR_MESSAGES = {
+  name: {
+    required: "Ad Soyad alanı zorunludur",
+    format: "Ad Soyad sadece harf içerebilir (2-50 karakter)",
+    minLength: "Ad Soyad en az 2 karakter olmalıdır",
+    maxLength: "Ad Soyad en fazla 50 karakter olmalıdır",
+    invalidChars: "Ad Soyad sadece harf ve boşluk içerebilir",
+  },
+  email: {
+    required: "E-posta alanı zorunludur",
+    format: "Geçerli bir e-posta adresi giriniz (örn: example@domain.com)",
+    domain: "Geçerli bir alan adı uzantısı giriniz (.com, .net, vb.)",
+  },
+  phone: {
+    required: "Telefon alanı zorunludur",
+    format:
+      "Geçerli bir telefon numarası giriniz (05XX XXX XX XX veya +90 5XX XXX XX XX)",
+    invalidChars: "Telefon numarası sadece rakam içerebilir",
+    prefix: "Telefon numarası 05 ile başlamalıdır",
+  },
+  password: {
+    required: "Şifre alanı zorunludur",
+    format:
+      "Şifre en az 8 karakter olmalı ve büyük harf, küçük harf, rakam ve özel karakter içermelidir",
+    minLength: "Şifre en az 8 karakter olmalıdır",
+    maxLength: "Şifre en fazla 20 karakter olmalıdır",
+    uppercase: "Şifre en az 1 büyük harf içermelidir",
+    lowercase: "Şifre en az 1 küçük harf içermelidir",
+    number: "Şifre en az 1 rakam içermelidir",
+    special: "Şifre en az 1 özel karakter içermelidir (!@#$%^&*)",
+  },
+  age: {
+    required: "Yaş alanı zorunludur",
+    format: "Yaş 13-120 arasında olmalıdır",
+    min: "Yaşınız en az 13 olmalıdır",
+    max: "Yaşınız en fazla 120 olmalıdır",
+    invalidChars: "Yaş sadece rakam içerebilir",
+  },
+  location: {
+    required: "Konum alanı zorunludur",
+    format: "Geçerli bir konum giriniz",
+  },
+};
 
 export default function RegisterScreen({ navigation }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [age, setAge] = useState("");
-  const [location, setLocation] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    age: "",
+    location: "",
+  });
+
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [activeInput, setActiveInput] = useState(null);
-
-  // Animasyon değerleri
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const formOpacity = useRef(new Animated.Value(0)).current;
-  const formTranslateY = useRef(new Animated.Value(100)).current;
+  const [isFormValid, setIsFormValid] = useState(false);
 
   // Harf animasyonları için
   const letterAnimations = [
@@ -48,106 +96,172 @@ export default function RegisterScreen({ navigation }) {
     useRef(new Animated.Value(0)).current,
   ];
 
-  // Input animasyonları için
-  const inputAnimations = {
-    name: useRef(new Animated.Value(0)).current,
-    email: useRef(new Animated.Value(0)).current,
-    phone: useRef(new Animated.Value(0)).current,
-    password: useRef(new Animated.Value(0)).current,
-    age: useRef(new Animated.Value(0)).current,
-    location: useRef(new Animated.Value(0)).current,
-  };
-
   useEffect(() => {
-    // Sayfa yüklendiğinde animasyonları başlat
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        easing: Easing.out(Easing.back(1.5)),
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 800,
-        easing: Easing.out(Easing.back(1.5)),
-        useNativeDriver: true,
-      }),
-      Animated.timing(formOpacity, {
-        toValue: 1,
-        duration: 1000,
-        delay: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(formTranslateY, {
-        toValue: 0,
-        duration: 800,
-        delay: 300,
-        easing: Easing.out(Easing.back(1.5)),
-        useNativeDriver: true,
-      }),
-      // Harf animasyonları
-      Animated.sequence([
-        Animated.timing(letterAnimations[0], {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(letterAnimations[1], {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(letterAnimations[2], {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(letterAnimations[3], {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(letterAnimations[4], {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
-  }, []);
-
-  // Input alanı aktif olduğunda animasyon
-  useEffect(() => {
-    if (activeInput) {
-      Animated.timing(inputAnimations[activeInput], {
+    // Sadece başlık animasyonunu başlat
+    Animated.sequence([
+      Animated.timing(letterAnimations[0], {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
-      }).start();
+      }),
+      Animated.timing(letterAnimations[1], {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(letterAnimations[2], {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(letterAnimations[3], {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(letterAnimations[4], {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const handleInputChange = (name, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    if (!touched[name]) {
+      setTouched((prev) => ({
+        ...prev,
+        [name]: true,
+      }));
     }
-  }, [activeInput]);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    Object.keys(touched).forEach((field) => {
+      if (!formData[field]) {
+        newErrors[field] = ERROR_MESSAGES[field].required;
+        isValid = false;
+      } else {
+        // Ad Soyad validasyonu
+        if (field === "name") {
+          if (formData[field].length < 2) {
+            newErrors[field] = ERROR_MESSAGES[field].minLength;
+            isValid = false;
+          } else if (formData[field].length > 50) {
+            newErrors[field] = ERROR_MESSAGES[field].maxLength;
+            isValid = false;
+          } else if (!VALIDATION[field].test(formData[field])) {
+            newErrors[field] = ERROR_MESSAGES[field].invalidChars;
+            isValid = false;
+          }
+        }
+
+        // E-posta validasyonu
+        if (field === "email") {
+          if (!VALIDATION[field].test(formData[field])) {
+            newErrors[field] = ERROR_MESSAGES[field].format;
+            isValid = false;
+          } else {
+            const domain = formData[field].split("@")[1];
+            if (!domain || !domain.includes(".")) {
+              newErrors[field] = ERROR_MESSAGES[field].domain;
+              isValid = false;
+            }
+          }
+        }
+
+        // Telefon validasyonu
+        if (field === "phone") {
+          const phoneNumber = formData[field].replace(/\s/g, "");
+          if (!VALIDATION[field].test(phoneNumber)) {
+            newErrors[field] = ERROR_MESSAGES[field].format;
+            isValid = false;
+          } else if (
+            !phoneNumber.startsWith("05") &&
+            !phoneNumber.startsWith("+90")
+          ) {
+            newErrors[field] = ERROR_MESSAGES[field].prefix;
+            isValid = false;
+          }
+        }
+
+        // Şifre validasyonu
+        if (field === "password") {
+          if (formData[field].length < 8) {
+            newErrors[field] = ERROR_MESSAGES[field].minLength;
+            isValid = false;
+          } else if (formData[field].length > 20) {
+            newErrors[field] = ERROR_MESSAGES[field].maxLength;
+            isValid = false;
+          } else if (!/[A-Z]/.test(formData[field])) {
+            newErrors[field] = ERROR_MESSAGES[field].uppercase;
+            isValid = false;
+          } else if (!/[a-z]/.test(formData[field])) {
+            newErrors[field] = ERROR_MESSAGES[field].lowercase;
+            isValid = false;
+          } else if (!/\d/.test(formData[field])) {
+            newErrors[field] = ERROR_MESSAGES[field].number;
+            isValid = false;
+          } else if (!/[@$!%*?&]/.test(formData[field])) {
+            newErrors[field] = ERROR_MESSAGES[field].special;
+            isValid = false;
+          }
+        }
+
+        // Yaş validasyonu
+        if (field === "age") {
+          const age = parseInt(formData[field]);
+          if (isNaN(age)) {
+            newErrors[field] = ERROR_MESSAGES[field].invalidChars;
+            isValid = false;
+          } else if (age < 13) {
+            newErrors[field] = ERROR_MESSAGES[field].min;
+            isValid = false;
+          } else if (age > 120) {
+            newErrors[field] = ERROR_MESSAGES[field].max;
+            isValid = false;
+          }
+        }
+      }
+    });
+
+    setErrors(newErrors);
+    setIsFormValid(isValid);
+  };
+
+  useEffect(() => {
+    if (Object.keys(touched).length > 0) {
+      const debounceTimeout = setTimeout(() => {
+        validateForm();
+      }, 1000);
+
+      return () => clearTimeout(debounceTimeout);
+    }
+  }, [formData]);
 
   const handleRegister = async () => {
-    if (!name || !email || !phone || !password || !age || !location) {
-      Alert.alert("Hata", "Lütfen tüm alanları doldurun!");
+    if (!isFormValid) {
+      Alert.alert("Hata", "Lütfen tüm alanları doğru şekilde doldurun!");
       return;
     }
 
     setLoading(true);
 
     const userData = {
-      name,
-      email,
-      phoneNumber: phone,
-      passwordHash: password,
-      age: parseInt(age, 10),
-      location,
+      name: formData.name,
+      email: formData.email,
+      phoneNumber: formData.phone,
+      passwordHash: formData.password,
+      age: parseInt(formData.age),
+      location: formData.location,
     };
 
     try {
@@ -179,63 +293,37 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
-  // Input alanı için animasyonlu bileşen
-  const AnimatedInput = ({
+  const renderInput = ({
     icon,
     placeholder,
     value,
-    onChangeText,
+    name,
     secureTextEntry,
     keyboardType,
-    name,
+    maxLength,
   }) => {
-    const isActive = activeInput === name;
-    const inputScale = inputAnimations[name].interpolate({
-      inputRange: [0, 1],
-      outputRange: [1, 1.05],
-    });
+    const hasError = touched[name] && errors[name];
 
     return (
-      <MotiView
-        from={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{
-          type: "timing",
-          duration: 500,
-          delay:
-            name === "name"
-              ? 100
-              : name === "email"
-              ? 200
-              : name === "phone"
-              ? 300
-              : name === "password"
-              ? 400
-              : name === "age"
-              ? 500
-              : 600,
-        }}
-        style={styles.inputContainer}
-      >
-        <Animated.View
-          style={[styles.inputWrapper, { transform: [{ scale: inputScale }] }]}
-        >
+      <View style={styles.inputContainer}>
+        <View style={[styles.inputWrapper, hasError && styles.inputError]}>
           <Ionicons
             name={icon}
             size={20}
-            color={isActive ? "#3b5998" : "#666"}
+            color={hasError ? "#ff3b30" : "#666"}
             style={styles.inputIcon}
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, hasError && styles.inputTextError]}
             placeholder={placeholder}
             placeholderTextColor="#999"
             value={value}
-            onChangeText={onChangeText}
+            onChangeText={(text) => handleInputChange(name, text)}
             secureTextEntry={secureTextEntry}
             keyboardType={keyboardType}
-            onFocus={() => setActiveInput(name)}
-            onBlur={() => setActiveInput(null)}
+            maxLength={maxLength}
+            blurOnSubmit={false}
+            returnKeyType="next"
           />
           {name === "password" && (
             <TouchableOpacity
@@ -249,8 +337,9 @@ export default function RegisterScreen({ navigation }) {
               />
             </TouchableOpacity>
           )}
-        </Animated.View>
-      </MotiView>
+        </View>
+        {hasError && <Text style={styles.errorText}>{errors[name]}</Text>}
+      </View>
     );
   };
 
@@ -296,15 +385,7 @@ export default function RegisterScreen({ navigation }) {
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-              },
-            ]}
-          >
+          <View style={styles.logoContainer}>
             <View style={styles.logoPlaceholder}>
               <Ionicons name="person-add-outline" size={80} color="#fff" />
             </View>
@@ -316,103 +397,85 @@ export default function RegisterScreen({ navigation }) {
               <AnimatedLetter letter="a" index={4} />
             </View>
             <Text style={styles.subtitle}>Hesap Oluştur</Text>
-          </Animated.View>
+          </View>
 
-          <Animated.View
-            style={[
-              styles.formContainer,
-              {
-                opacity: formOpacity,
-                transform: [{ translateY: formTranslateY }],
-              },
-            ]}
-          >
-            <AnimatedInput
-              icon="person-outline"
-              placeholder="Ad Soyad"
-              value={name}
-              onChangeText={setName}
-              name="name"
-            />
+          <View style={styles.formContainer}>
+            {renderInput({
+              icon: "person-outline",
+              placeholder: "Ad Soyad",
+              value: formData.name,
+              name: "name",
+              maxLength: 50,
+            })}
 
-            <AnimatedInput
-              icon="mail-outline"
-              placeholder="E-posta"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              name="email"
-            />
+            {renderInput({
+              icon: "mail-outline",
+              placeholder: "E-posta",
+              value: formData.email,
+              name: "email",
+              keyboardType: "email-address",
+              autoCapitalize: "none",
+            })}
 
-            <AnimatedInput
-              icon="call-outline"
-              placeholder="Telefon"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              name="phone"
-            />
+            {renderInput({
+              icon: "call-outline",
+              placeholder: "Telefon (05XX XXX XX XX)",
+              value: formData.phone,
+              name: "phone",
+              keyboardType: "phone-pad",
+              maxLength: 13,
+            })}
 
-            <AnimatedInput
-              icon="lock-closed-outline"
-              placeholder="Şifre"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              name="password"
-            />
+            {renderInput({
+              icon: "lock-closed-outline",
+              placeholder: "Şifre",
+              value: formData.password,
+              name: "password",
+              secureTextEntry: !showPassword,
+              maxLength: 20,
+            })}
 
-            <AnimatedInput
-              icon="calendar-outline"
-              placeholder="Yaş"
-              value={age}
-              onChangeText={setAge}
-              keyboardType="numeric"
-              name="age"
-            />
+            {renderInput({
+              icon: "calendar-outline",
+              placeholder: "Yaş",
+              value: formData.age,
+              name: "age",
+              keyboardType: "numeric",
+              maxLength: 3,
+            })}
 
-            <AnimatedInput
-              icon="location-outline"
-              placeholder="Konum"
-              value={location}
-              onChangeText={setLocation}
-              name="location"
-            />
+            {renderInput({
+              icon: "location-outline",
+              placeholder: "Konum",
+              value: formData.location,
+              name: "location",
+            })}
 
-            <MotiView
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "timing", duration: 500, delay: 700 }}
+            <TouchableOpacity
+              style={[
+                styles.registerButton,
+                !isFormValid && styles.registerButtonDisabled,
+              ]}
+              onPress={handleRegister}
+              disabled={loading || !isFormValid}
             >
-              <TouchableOpacity
-                style={styles.registerButton}
-                onPress={handleRegister}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.registerButtonText}>Kayıt Ol</Text>
-                )}
-              </TouchableOpacity>
-            </MotiView>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.registerButtonText}>Kayıt Ol</Text>
+              )}
+            </TouchableOpacity>
 
-            <MotiView
-              from={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ type: "timing", duration: 500, delay: 800 }}
+            <TouchableOpacity
+              style={styles.loginLink}
+              onPress={() => navigation.goBack()}
             >
-              <TouchableOpacity
-                style={styles.loginLink}
-                onPress={() => navigation.goBack()}
-              >
-                <Text style={styles.loginLinkText}>
-                  Zaten hesabın var mı?{" "}
-                  <Text style={styles.loginLinkTextBold}>Giriş Yap</Text>
-                </Text>
-              </TouchableOpacity>
-            </MotiView>
-          </Animated.View>
+              <Text style={styles.loginLinkText}>
+                Zaten hesabın var mı?{" "}
+                <Text style={styles.loginLinkTextBold}>Giriş Yap</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </LinearGradient>
     </KeyboardAvoidingView>
@@ -490,6 +553,10 @@ const styles = StyleSheet.create({
     height: 55,
     backgroundColor: "#f9f9f9",
   },
+  inputError: {
+    borderColor: "#ff3b30",
+    backgroundColor: "#fff5f5",
+  },
   inputIcon: {
     marginRight: 10,
   },
@@ -498,6 +565,15 @@ const styles = StyleSheet.create({
     height: 55,
     color: "#333",
     fontSize: 16,
+  },
+  inputTextError: {
+    color: "#ff3b30",
+  },
+  errorText: {
+    color: "#ff3b30",
+    fontSize: 12,
+    marginTop: 5,
+    marginLeft: 15,
   },
   eyeIcon: {
     padding: 5,
@@ -514,6 +590,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 5,
+  },
+  registerButtonDisabled: {
+    backgroundColor: "#ccc",
+    shadowColor: "#ccc",
   },
   registerButtonText: {
     color: "#fff",

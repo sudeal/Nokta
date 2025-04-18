@@ -9,27 +9,19 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  ScrollView,
   Animated,
   Easing,
-  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { MotiView } from "moti";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [activeInput, setActiveInput] = useState(null);
-
-  // Animasyon değerleri
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const formOpacity = useRef(new Animated.Value(0)).current;
-  const formTranslateY = useRef(new Animated.Value(100)).current;
+  const [errors, setErrors] = useState({});
 
   // Harf animasyonları için
   const letterAnimations = [
@@ -40,90 +32,60 @@ export default function LoginScreen({ navigation }) {
     useRef(new Animated.Value(0)).current,
   ];
 
-  // Input animasyonları için
-  const inputAnimations = {
-    email: useRef(new Animated.Value(0)).current,
-    password: useRef(new Animated.Value(0)).current,
-  };
-
   useEffect(() => {
-    // Sayfa yüklendiğinde animasyonları başlat
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        easing: Easing.out(Easing.back(1.5)),
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 800,
-        easing: Easing.out(Easing.back(1.5)),
-        useNativeDriver: true,
-      }),
-      Animated.timing(formOpacity, {
-        toValue: 1,
-        duration: 1000,
-        delay: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(formTranslateY, {
-        toValue: 0,
-        duration: 800,
-        delay: 300,
-        easing: Easing.out(Easing.back(1.5)),
-        useNativeDriver: true,
-      }),
-      // Harf animasyonları
-      Animated.sequence([
-        Animated.timing(letterAnimations[0], {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(letterAnimations[1], {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(letterAnimations[2], {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(letterAnimations[3], {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(letterAnimations[4], {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
-  }, []);
-
-  // Input alanı aktif olduğunda animasyon
-  useEffect(() => {
-    if (activeInput) {
-      Animated.timing(inputAnimations[activeInput], {
+    // Sadece başlık animasyonunu başlat
+    Animated.sequence([
+      Animated.timing(letterAnimations[0], {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
-      }).start();
+      }),
+      Animated.timing(letterAnimations[1], {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(letterAnimations[2], {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(letterAnimations[3], {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(letterAnimations[4], {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const validateForm = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    if (!email) {
+      newErrors.email = "E-posta alanı zorunludur";
+      isValid = false;
+    } else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
+      newErrors.email = "Geçerli bir e-posta adresi giriniz";
+      isValid = false;
     }
-  }, [activeInput]);
+
+    if (!password) {
+      newErrors.password = "Şifre alanı zorunludur";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Hata", "Email ve şifre boş bırakılamaz!");
+    if (!validateForm()) {
       return;
     }
 
@@ -163,8 +125,7 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  // Input alanı için animasyonlu bileşen
-  const AnimatedInput = ({
+  const renderInput = ({
     icon,
     placeholder,
     value,
@@ -173,42 +134,27 @@ export default function LoginScreen({ navigation }) {
     keyboardType,
     name,
   }) => {
-    const isActive = activeInput === name;
-    const inputScale = inputAnimations[name].interpolate({
-      inputRange: [0, 1],
-      outputRange: [1, 1.05],
-    });
-
+    const hasError = errors[name];
+    
     return (
-      <MotiView
-        from={{ opacity: 0, translateY: 20 }}
-        animate={{ opacity: 1, translateY: 0 }}
-        transition={{
-          type: "timing",
-          duration: 500,
-          delay: name === "email" ? 100 : 200,
-        }}
-        style={styles.inputContainer}
-      >
-        <Animated.View
-          style={[styles.inputWrapper, { transform: [{ scale: inputScale }] }]}
-        >
+      <View style={styles.inputContainer}>
+        <View style={[styles.inputWrapper, hasError && styles.inputError]}>
           <Ionicons
             name={icon}
             size={20}
-            color={isActive ? "#3b5998" : "#666"}
+            color={hasError ? "#ff3b30" : "#666"}
             style={styles.inputIcon}
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, hasError && styles.inputTextError]}
             placeholder={placeholder}
             placeholderTextColor="#999"
             value={value}
             onChangeText={onChangeText}
             secureTextEntry={secureTextEntry}
             keyboardType={keyboardType}
-            onFocus={() => setActiveInput(name)}
-            onBlur={() => setActiveInput(null)}
+            blurOnSubmit={false}
+            returnKeyType="next"
           />
           {name === "password" && (
             <TouchableOpacity
@@ -222,8 +168,9 @@ export default function LoginScreen({ navigation }) {
               />
             </TouchableOpacity>
           )}
-        </Animated.View>
-      </MotiView>
+        </View>
+        {hasError && <Text style={styles.errorText}>{errors[name]}</Text>}
+      </View>
     );
   };
 
@@ -269,15 +216,7 @@ export default function LoginScreen({ navigation }) {
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-              },
-            ]}
-          >
+          <View style={styles.logoContainer}>
             <View style={styles.logoPlaceholder}>
               <Ionicons name="log-in-outline" size={80} color="#fff" />
             </View>
@@ -289,69 +228,49 @@ export default function LoginScreen({ navigation }) {
               <AnimatedLetter letter="a" index={4} />
             </View>
             <Text style={styles.subtitle}>Giriş Yap</Text>
-          </Animated.View>
+          </View>
 
-          <Animated.View
-            style={[
-              styles.formContainer,
-              {
-                opacity: formOpacity,
-                transform: [{ translateY: formTranslateY }],
-              },
-            ]}
-          >
-            <AnimatedInput
-              icon="mail-outline"
-              placeholder="E-posta"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              name="email"
-            />
+          <View style={styles.formContainer}>
+            {renderInput({
+              icon: "mail-outline",
+              placeholder: "E-posta",
+              value: email,
+              onChangeText: setEmail,
+              keyboardType: "email-address",
+              name: "email",
+            })}
 
-            <AnimatedInput
-              icon="lock-closed-outline"
-              placeholder="Şifre"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              name="password"
-            />
+            {renderInput({
+              icon: "lock-closed-outline",
+              placeholder: "Şifre",
+              value: password,
+              onChangeText: setPassword,
+              secureTextEntry: !showPassword,
+              name: "password",
+            })}
 
-            <MotiView
-              from={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "timing", duration: 500, delay: 300 }}
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleLogin}
+              disabled={loading}
             >
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={handleLogin}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.loginButtonText}>Giriş Yap</Text>
-                )}
-              </TouchableOpacity>
-            </MotiView>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.loginButtonText}>Giriş Yap</Text>
+              )}
+            </TouchableOpacity>
 
-            <MotiView
-              from={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ type: "timing", duration: 500, delay: 400 }}
+            <TouchableOpacity
+              style={styles.registerLink}
+              onPress={() => navigation.navigate("Register")}
             >
-              <TouchableOpacity
-                style={styles.registerLink}
-                onPress={() => navigation.navigate("Register")}
-              >
-                <Text style={styles.registerLinkText}>
-                  Hesabın yok mu?{" "}
-                  <Text style={styles.registerLinkTextBold}>Kayıt Ol</Text>
-                </Text>
-              </TouchableOpacity>
-            </MotiView>
-          </Animated.View>
+              <Text style={styles.registerLinkText}>
+                Hesabın yok mu?{" "}
+                <Text style={styles.registerLinkTextBold}>Kayıt Ol</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </LinearGradient>
     </KeyboardAvoidingView>
@@ -429,6 +348,10 @@ const styles = StyleSheet.create({
     height: 55,
     backgroundColor: "#f9f9f9",
   },
+  inputError: {
+    borderColor: "#ff3b30",
+    backgroundColor: "#fff5f5",
+  },
   inputIcon: {
     marginRight: 10,
   },
@@ -437,6 +360,15 @@ const styles = StyleSheet.create({
     height: 55,
     color: "#333",
     fontSize: 16,
+  },
+  inputTextError: {
+    color: "#ff3b30",
+  },
+  errorText: {
+    color: "#ff3b30",
+    fontSize: 12,
+    marginTop: 5,
+    marginLeft: 15,
   },
   eyeIcon: {
     padding: 5,
