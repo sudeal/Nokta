@@ -18,7 +18,6 @@ import Template13 from "./screens/templates/Template13";
 import Template14 from "./screens/templates/Template14";
 import Template15 from "./screens/templates/Template15";
 import Template16 from "./screens/templates/Template16";
-import logo from "./images/NoktaLogo.png";
 import "./App.css";
 
 function App() {
@@ -67,49 +66,29 @@ function App() {
 
 /* Header layout for Login and Signup */
 const HeaderLayout = ({ children }) => {
+  const location = window.location.pathname;
+  const isLoginPage = location === "/";
+  
   return (
     <div className="App">
-      <header className="App-header">
-        <div className="logo-container">
-          <img src={logo} alt="Nokta Logo" className="logo" />
-        </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginBottom: "20px",
-          }}
-        >
-          <button style={buttonStyle}>
-            <Link to="/" style={linkStyle}>
-              Login
-            </Link>
-          </button>
-          <button style={buttonStyle}>
-            <Link to="/signup" style={linkStyle}>
-              Signup
-            </Link>
-          </button>
+      <header className="App-header" style={{ justifyContent: 'flex-start', padding: '15px' }}>
+        <div className="logo-container" style={{ alignSelf: 'flex-start' }}>
+          <h1 style={{ 
+            fontSize: '42px', 
+            fontWeight: 'bold', 
+            color: '#FFFFFF',
+            margin: '10px 0 10px 10px',
+            letterSpacing: '2px',
+            textShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.5)',
+            filter: 'brightness(1.2)'
+          }}>
+            NOKTA
+          </h1>
         </div>
       </header>
       {children}
     </div>
   );
-};
-
-/* Styles for buttons and links */
-const buttonStyle = {
-  backgroundColor: "white",
-  color: "#004080",
-  border: "1px solid #004080",
-  padding: "10px 20px",
-  cursor: "pointer",
-  marginRight: "5px",
-};
-
-const linkStyle = {
-  textDecoration: "none",
-  color: "#004080",
 };
 
 export default App;

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,33 +66,71 @@ const Login = () => {
   };
 
   return (
-    <div>
+    <div className="auth-container">
       <form onSubmit={handleSubmit}>
+        <h2 className="auth-title">Welcome Back</h2>
+        <p className="auth-subtitle">Login to access your website</p>
+        
         <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <label htmlFor="email">Email Address</label>
+          <div className="input-container">
+            <span className="input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </span>
+            <input
+              id="email"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
         </div>
+        
         <div className="form-group">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="label-container">
+            <label htmlFor="password">Password</label>
+            <a href="#" className="forgot-password">Forgot Password?</a>
+          </div>
+          <div className="input-container">
+            <span className="input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </span>
+            <input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
         </div>
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
+        
+        <button type="submit" disabled={loading} className="auth-button">
+          {loading ? (
+            <span className="loading-spinner">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="spin">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+              </svg>
+            </span>
+          ) : (
+            "Login"
+          )}
         </button>
+        
+        <Link to="/signup">
+          <button type="button" className="auth-button register-button" style={{ marginTop: '15px', backgroundColor: '#4CAF50' }}>
+            Register
+          </button>
+        </Link>
       </form>
     </div>
   );
