@@ -11,6 +11,8 @@ import RegisterScreen from "./screens/RegisterScreen";
 import NewBookingScreen from "./screens/NewBookingScreen";
 import NotificationScreen from "./screens/NotificationScreen";
 import BusinessDetailScreen from "./screens/BusinessDetailScreen";
+import CalendarScreen from "./screens/CalendarScreen";
+import MessagesScreen from "./screens/MessagesScreen";
 import { StyleSheet } from "react-native";
 
 const Stack = createNativeStackNavigator();
@@ -26,9 +28,7 @@ function TabNavigator() {
           if (route.name === "Home") {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "Browse") {
-            iconName = focused ? "search" : "search-outline";
-          } else if (route.name === "Profile") {
-            iconName = focused ? "person" : "person-outline";
+            iconName = focused ? "compass" : "compass-outline";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -39,7 +39,6 @@ function TabNavigator() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Browse" component={BrowseScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
@@ -57,6 +56,9 @@ export default function App() {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="NewBooking" component={NewBookingScreen} />
         <Stack.Screen name="Notification" component={NotificationScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="Calendar" component={CalendarScreen} />
+        <Stack.Screen name="Messages" component={MessagesScreen} />
         <Stack.Screen
           name="BusinessDetail"
           component={BusinessDetailScreen}

@@ -166,28 +166,11 @@ export default function HomeScreen({ navigation }) {
         {renderLocationInfo()}
 
         <View style={styles.buttonGrid}>
-          {renderMenuButton("compass", "Browse", () => navigation.navigate("Browse"), 200)}
-          {renderMenuButton("calendar", "Calendar", () => navigation.navigate("Calendar"), 300)}
-          {renderMenuButton("chatbubbles", "Messages", () => navigation.navigate("Messages"), 400)}
-          {renderMenuButton("add-circle", "New Booking", () => navigation.navigate("NewBooking"), 500)}
-          {renderMenuButton("notifications", "Notifications", () => navigation.navigate("Notification"), 600)}
-          {renderMenuButton("search", "Search", () => navigation.navigate("Search"), 700)}
+          {renderMenuButton("add-circle", "New Booking", () => navigation.navigate("NewBooking"), 200)}
+          {renderMenuButton("notifications", "Notifications", () => navigation.navigate("Notification"), 300)}
+          {renderMenuButton("calendar", "Calendar", () => navigation.navigate("Calendar"), 400)}
+          {renderMenuButton("chatbubbles", "Messages", () => navigation.navigate("Messages"), 500)}
         </View>
-
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={() => navigation.replace("Login")}
-        >
-          <LinearGradient
-            colors={["#ff6347", "#ff4500"]}
-            style={styles.logoutGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Ionicons name="log-out-outline" size={24} color="#fff" />
-            <Text style={styles.logoutText}>Logout</Text>
-          </LinearGradient>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -293,30 +276,5 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
-  },
-  logoutButton: {
-    width: "80%",
-    height: 50,
-    borderRadius: 25,
-    marginTop: 30,
-    marginBottom: 20,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  logoutGradient: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoutText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 10,
   },
 });

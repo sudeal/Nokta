@@ -1,18 +1,21 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 export default function Navbar() {
+  const navigation = useNavigation();
+
   return (
     <View style={styles.navbar}>
       <View style={styles.logoContainer}>
         <Text style={styles.logo}>Nokta</Text>
       </View>
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="notifications-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={() => navigation.navigate("Profile")}
+        >
           <Ionicons name="person-outline" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -38,7 +41,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   logoContainer: {
-    flexDirection: "row",
+    flex: 1,
     alignItems: "center",
   },
   logo: {
@@ -50,8 +53,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   actions: {
-    flexDirection: "row",
-    alignItems: "center",
+    position: "absolute",
+    right: 20,
+    top: 50,
   },
   iconButton: {
     width: 40,
@@ -60,6 +64,5 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 10,
   },
 });
