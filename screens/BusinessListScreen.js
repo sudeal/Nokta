@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,17 @@ import {
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
+  Animated,
+  Dimensions,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 
 const categoryData = {
   'Health Services': {
-    color: 'rgba(0, 122, 255, 0.9)',
+    color: ['#4158D0', '#C850C0'],
     icon: 'medical',
     subcategories: [
       { name: 'Doctor', icon: 'medical-outline' },
@@ -22,7 +26,7 @@ const categoryData = {
     ],
   },
   'Food & Beverages': {
-    color: 'rgba(255, 149, 0, 0.9)',
+    color: ['#FF9966', '#FF5E62'],
     icon: 'restaurant',
     subcategories: [
       { name: 'Restaurants', icon: 'restaurant-outline' },
@@ -32,7 +36,7 @@ const categoryData = {
     ],
   },
   'Selfcare': {
-    color: 'rgba(175, 82, 222, 0.9)',
+    color: ['#8E2DE2', '#4A00E0'],
     icon: 'cut',
     subcategories: [
       { name: 'Male Coiffure', icon: 'man-outline' },
@@ -43,12 +47,72 @@ const categoryData = {
   },
 };
 
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Dünya'nın yarıçapı (km)
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+const getWelcomeMessage = () => {
+  return "Quality services you're looking for are at your fingertips 🌟";
+};
+
 export default function BusinessListScreen({ route, navigation }) {
   const { category } = route.params;
   const categoryInfo = categoryData[category];
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [selectedSubcategory]);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationError('Konum izni reddedildi');
+        return;
+      }
+
+      try {
+        const location = await Location.getCurrentPositionAsync({});
+        setUserLocation(location.coords);
+      } catch (error) {
+        setLocationError('Konum alınamadı');
+      }
+    })();
+  }, []);
 
   const fetchBusinesses = async (subcategory) => {
     setLoading(true);
@@ -136,6 +200,19 @@ export default function BusinessListScreen({ route, navigation }) {
         }
       }
 
+      // Add distance to each business and sort by distance
+      if (userLocation) {
+        filteredBusinesses = filteredBusinesses.map(business => ({
+          ...business,
+          distance: getDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            business.latitude,
+            business.longitude
+          )
+        })).sort((a, b) => a.distance - b.distance);
+      }
+
       console.log('Selected category:', category);
       console.log('Selected subcategory:', subcategory.name);
       console.log('Filtered businesses:', filteredBusinesses);
@@ -170,49 +247,116 @@ export default function BusinessListScreen({ route, navigation }) {
 
       if (businesses.length === 0) {
         return (
-          <View style={styles.noResultsContainer}>
+          <Animated.View 
+            style={[
+              styles.noResultsContainer,
+              {
+                opacity: fadeAnim,
+                transform: [
+                  { translateY: slideAnim },
+                  { scale: scaleAnim }
+                ],
+              }
+            ]}
+          >
             <Text style={styles.noResultsText}>İşletme bulunamadı</Text>
-          </View>
+          </Animated.View>
         );
       }
 
       return (
-        <ScrollView style={styles.businessList}>
-          {businesses.map((business) => (
-            <TouchableOpacity
+        <Animated.ScrollView 
+          style={[
+            styles.businessList,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }
+          ]}
+        >
+          <Animated.View
+            style={[
+              styles.welcomeContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              }
+            ]}
+          >
+            <Text style={styles.welcomeText}>{getWelcomeMessage()}</Text>
+          </Animated.View>
+
+          {businesses.map((business, index) => (
+            <Animated.View
               key={business.businessID}
-              style={styles.businessCard}
-              onPress={() => handleBusinessPress(business)}
+              style={{
+                opacity: fadeAnim,
+                transform: [
+                  { translateY: slideAnim },
+                  { scale: scaleAnim }
+                ],
+              }}
             >
-              <View style={styles.businessInfo}>
-                <Text style={styles.businessName}>{business.name}</Text>
-                <Text style={styles.businessAddress}>{business.address}</Text>
-                <Text style={styles.businessHours}>
-                  Çalışma Saatleri: {business.openingHour}:00 - {business.closingHour}:00
-                </Text>
-              </View>
-              <View style={styles.arrowContainer}>
-                <Ionicons name="arrow-forward" size={20} color="#666" />
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.businessCard, { marginTop: index === 0 ? 0 : 16 }]}
+                onPress={() => handleBusinessPress(business)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={categoryInfo.color}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.businessGradient}
+                >
+                  <View style={styles.businessInfo}>
+                    <Text style={styles.businessName}>{business.name}</Text>
+                    <Text style={styles.businessAddress}>{business.address}</Text>
+                    <View style={styles.businessDetailsRow}>
+                      <Text style={styles.businessHours}>
+                        {business.openingHour}:00 - {business.closingHour}:00
+                      </Text>
+                      {business.distance && (
+                        <Text style={styles.distanceText}>
+                          {business.distance < 1 
+                            ? `${Math.round(business.distance * 1000)} m`
+                            : `${business.distance.toFixed(1)} km`}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <View style={styles.arrowContainer}>
+                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
           ))}
-        </ScrollView>
+        </Animated.ScrollView>
       );
     }
 
     return (
-      <View style={styles.subcategoriesContainer}>
+      <Animated.View 
+        style={[
+          styles.subcategoriesContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]}
+      >
         {categoryInfo.subcategories.map((subcategory, index) => (
           <TouchableOpacity
             key={index}
             style={styles.subcategoryCard}
             onPress={() => handleSubcategoryPress(subcategory)}
+            activeOpacity={0.8}
           >
             <LinearGradient
-              colors={[categoryInfo.color, categoryInfo.color.replace('0.9', '0.7')]}
+              colors={categoryInfo.color}
               style={styles.subcategoryGradient}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+              end={{ x: 1, y: 0 }}
             >
               <View style={styles.iconContainer}>
                 <Ionicons name={subcategory.icon} size={32} color="#fff" />
@@ -224,19 +368,27 @@ export default function BusinessListScreen({ route, navigation }) {
             </LinearGradient>
           </TouchableOpacity>
         ))}
-      </View>
+      </Animated.View>
     );
   };
 
   return (
     <LinearGradient
-      colors={['#0A1128', '#1C2541']}
+      colors={['#1A1A1A', '#2D2D2D']}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+        <Animated.View 
+          style={[
+            styles.header,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }
+          ]}
+        >
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => {
@@ -253,11 +405,11 @@ export default function BusinessListScreen({ route, navigation }) {
           <Text style={styles.headerTitle}>
             {selectedSubcategory ? selectedSubcategory.name : category}
           </Text>
-        </View>
+        </Animated.View>
 
-        <ScrollView style={styles.content}>
+        <View style={styles.content}>
           {renderContent()}
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -275,6 +427,12 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 24,
@@ -349,13 +507,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   businessCard: {
-    backgroundColor: 'white',
     borderRadius: 16,
-    marginBottom: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 3,
+    overflow: 'hidden',
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -364,22 +518,54 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
+  businessGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
   businessInfo: {
     flex: 1,
   },
   businessName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
     marginBottom: 4,
   },
   businessAddress: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 4,
+  },
+  businessDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  distanceText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
   },
   businessHours: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  welcomeContainer: {
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  welcomeText: {
+    color: '#fff',
+    fontSize: 17,
+    textAlign: 'center',
+    lineHeight: 24,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
 }); 
