@@ -11,6 +11,7 @@ import RegisterScreen from "./screens/RegisterScreen";
 import NewBookingScreen from "./screens/NewBookingScreen";
 import NotificationScreen from "./screens/NotificationScreen";
 import BusinessDetailScreen from "./screens/BusinessDetailScreen";
+import BusinessListScreen from "./screens/BusinessListScreen";
 import CalendarScreen from "./screens/CalendarScreen";
 import MessagesScreen from "./screens/MessagesScreen";
 import { StyleSheet } from "react-native";
@@ -31,14 +32,57 @@ function TabNavigator() {
             iconName = focused ? "compass" : "compass-outline";
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={26} color={color} />;
         },
-        tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "gray",
+        tabBarActiveTintColor: "#4CC9F0",
+        tabBarInactiveTintColor: "rgba(255, 255, 255, 0.5)",
+        tabBarStyle: {
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          borderTopWidth: 0,
+          elevation: 0,
+          height: 65,
+          paddingBottom: 10,
+          paddingTop: 10,
+          position: 'absolute',
+          bottom: 20,
+          left: 20,
+          right: 20,
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          shadowColor: "#000",
+          shadowOffset: {
+            width: 0,
+            height: 4,
+          },
+          shadowOpacity: 0.2,
+          shadowRadius: 8,
+        },
+        headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Browse" component={BrowseScreen} />
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen}
+        options={{
+          tabBarLabel: 'Home',
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+          },
+        }}
+      />
+      <Tab.Screen 
+        name="Browse" 
+        component={BrowseScreen}
+        options={{
+          tabBarLabel: 'Browse',
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+          },
+        }}
+      />
     </Tab.Navigator>
   );
 }
@@ -59,6 +103,11 @@ export default function App() {
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Calendar" component={CalendarScreen} />
         <Stack.Screen name="Messages" component={MessagesScreen} />
+        <Stack.Screen
+          name="BusinessList"
+          component={BusinessListScreen}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="BusinessDetail"
           component={BusinessDetailScreen}

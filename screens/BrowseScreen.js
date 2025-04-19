@@ -130,10 +130,19 @@ export default function BrowseScreen({ navigation }) {
     setFilteredBusinesses(result);
   }, [selectedCategory, searchQuery]);
 
+  const handleCategoryPress = (category) => {
+    setSelectedCategory(category);
+    if (category === "Restaurant") {
+      navigation.navigate('BusinessList', { 
+        category: 'Food & Beverages'
+      });
+    }
+  };
+
   const renderBusinessItem = ({ item }) => (
     <TouchableOpacity
       style={styles.businessCard}
-      onPress={() => navigation.navigate("BusinessDetail", { business: item })}
+      onPress={() => navigation.navigate('BusinessDetail', { business: item })}
     >
       <Image source={{ uri: item.image }} style={styles.businessImage} />
       <View style={styles.businessInfo}>
@@ -180,7 +189,14 @@ export default function BrowseScreen({ navigation }) {
                 styles.categoryButton,
                 selectedCategory === item && styles.selectedCategory,
               ]}
-              onPress={() => setSelectedCategory(item)}
+              onPress={() => {
+                setSelectedCategory(item);
+                if (item === "Restaurant") {
+                  navigation.navigate('BusinessList', { 
+                    category: 'Food & Beverages'
+                  });
+                }
+              }}
             >
               <Text
                 style={[

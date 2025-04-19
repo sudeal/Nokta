@@ -109,10 +109,40 @@ export default function LoginScreen({ navigation }) {
         }
       );
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
       if (response.ok) {
-        const successMessage = await response.text();
-        Alert.alert("Başarılı", successMessage || "Giriş başarılı!");
-        navigation.replace("Home");
+        const responseText = await response.text();
+        console.log('Raw response text:', responseText);
+        
+        // API yanıtını kontrol et
+        if (responseText.includes('Login successful')) {
+          // Login başarılı mesajı geldiğinde, kullanıcı bilgilerini almak için ikinci bir istek yap
+          const userResponse = await fetch(
+            `https://nokta-appservice.azurewebsites.net/api/Users/getuser?email=${loginData.email}`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                accept: "application/json",
+              },
+            }
+          );
+          
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            const firstName = userData.name ? userData.name.split(' ')[0] : "Misafir";
+            global.userData = { ...userData, firstName };
+          } else {
+            global.userData = { name: "Misafir", firstName: "Misafir" };
+          }
+        } else {
+          global.userData = { name: "Misafir", firstName: "Misafir" };
+        }
+        
+        Alert.alert("Başarılı", "Giriş başarılı!");
+        navigation.replace("MainTabs");
       } else {
         const errorMessage = await response.text();
         Alert.alert("Hata", errorMessage || "Giriş başarısız.");
