@@ -9,9 +9,9 @@ const Login = () => {
 
   const handleLoginSuccess = async (email) => {
     try {
-      // Fetch user details to get webSiteTemplateID
+      // Fetch all businesses to get the complete business data
       const response = await fetch(
-        `https://nokta-appservice.azurewebsites.net/api/Business/email/${email}`,
+        "https://nokta-appservice.azurewebsites.net/api/Business",
         {
           method: "GET",
           headers: {
@@ -20,16 +20,28 @@ const Login = () => {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to fetch user details");
+      if (!response.ok) throw new Error("Failed to fetch business details");
 
-      const userData = await response.json();
-      const { webSiteTemplateID } = userData;
+      const businesses = await response.json();
+      
+      // Find the business that matches the email
+      const business = businesses.find(b => b.email === email);
+      
+      if (!business) {
+        throw new Error("Business not found");
+      }
+      
+      // Store business data in localStorage with correct businessID
+      localStorage.setItem("userData", JSON.stringify({
+        ...business,
+        id: business.businessID // Ensure ID is available in both formats
+      }));
 
       // Navigate to the appropriate template based on webSiteTemplateID
-      navigate(`/template${webSiteTemplateID}`);
+      navigate(`/template${business.webSiteTemplateID}`);
     } catch (error) {
-      console.error("Error fetching user details:", error);
-      alert("Failed to fetch user details. Please try again.");
+      console.error("Error fetching business details:", error);
+      alert("Failed to fetch business details. Please try again.");
     }
   };
 
