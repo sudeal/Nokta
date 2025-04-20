@@ -7,6 +7,268 @@ const Appointments = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [activeTab, setActiveTab] = useState('today');
+
+  // Renk paleti
+  const colors = {
+    primary: '#3f51b5', // Ana renk
+    primaryLight: '#757de8',
+    primaryDark: '#002984',
+    accent: '#ff4081', // Vurgu rengi
+    background: '#f2f2f7', // Arka plan - daha koyu
+    cardBg: '#e6e9f0', // Kart arka planı - beyazdan daha koyu gri-mavi
+    text: '#424242', // Ana metin rengi
+    textLight: '#757575', // Açık metin
+    success: '#4caf50', // Başarı durumu
+    warning: '#ff9800', // Uyarı durumu
+    error: '#f44336', // Hata durumu
+    info: '#2196f3', // Bilgi durumu
+    border: '#d0d0d0', // Kenarlık rengi - daha koyu
+    divider: '#c8ccd8', // Ayraç rengi - daha koyu
+  };
+
+  // CSS styles
+  const styles = {
+    container: {
+      backgroundColor: 'transparent',
+      padding: '20px',
+      borderRadius: '8px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+    },
+    header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '24px',
+      borderBottom: `1px solid rgba(255, 255, 255, 0.15)`,
+      paddingBottom: '16px'
+    },
+    heading: {
+      color: 'white',
+      fontSize: '28px',
+      fontWeight: 'bold',
+      margin: 0,
+      textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+      display: 'flex',
+      alignItems: 'center',
+      letterSpacing: '0.5px'
+    },
+    businessInfo: {
+      color: 'rgba(255, 255, 255, 0.75)',
+      fontSize: '14px',
+      backgroundColor: 'rgba(45, 52, 84, 0.5)',
+      padding: '8px 12px',
+      borderRadius: '6px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px'
+    },
+    tabsContainer: {
+      display: 'flex',
+      borderBottom: `2px solid ${colors.divider}`,
+      marginBottom: '20px',
+      overflowX: 'auto',
+      width: '100%'
+    },
+    tabButton: {
+      padding: '12px 20px',
+      background: 'none',
+      border: 'none',
+      borderBottom: '3px solid transparent',
+      fontSize: '15px',
+      fontWeight: '600',
+      color: colors.textLight,
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      whiteSpace: 'nowrap',
+      marginRight: '10px',
+      position: 'relative'
+    },
+    activeTab: {
+      color: colors.primary,
+      borderBottom: `3px solid ${colors.primary}`,
+    },
+    tabCount: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: '24px',
+      height: '24px',
+      borderRadius: '12px',
+      backgroundColor: colors.divider,
+      color: colors.textLight,
+      fontSize: '12px',
+      fontWeight: 'bold',
+      marginLeft: '8px',
+      padding: '0 8px'
+    },
+    activeTabCount: {
+      backgroundColor: colors.primary,
+      color: 'white'
+    },
+    tabContent: {
+      padding: '15px',
+      backgroundColor: 'transparent',
+      borderRadius: '0 0 8px 8px'
+    },
+    appointmentCard: {
+      display: 'flex',
+      margin: '0 0 16px 0',
+      borderRadius: '8px',
+      overflow: 'hidden',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      backgroundColor: 'rgba(45, 52, 84, 0.85)',
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      padding: '16px'
+    },
+    cardAccepted: {
+      borderLeft: `5px solid ${colors.success}`,
+    },
+    cardPending: {
+      borderLeft: `5px solid ${colors.warning}`,
+    },
+    cardRejected: {
+      borderLeft: `5px solid ${colors.error}`,
+    },
+    cardCompleted: {
+      borderLeft: `5px solid ${colors.info}`,
+    },
+    emptySection: {
+      padding: '30px',
+      textAlign: 'center',
+      backgroundColor: 'rgba(40, 44, 68, 0.7)',
+      borderRadius: '8px',
+      color: colors.textLight,
+      fontStyle: 'italic',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+    },
+    cardLeft: {
+      padding: '0 16px 0 0',
+      display: 'flex',
+      flexDirection: 'column',
+      borderRight: `1px solid ${colors.divider}`,
+      minWidth: '120px'
+    },
+    cardMid: {
+      flex: 1,
+      padding: '0 16px'
+    },
+    cardRight: {
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      minWidth: '140px'
+    },
+    appointmentID: {
+      fontSize: '14px',
+      color: 'rgba(255, 255, 255, 0.75)',
+      marginBottom: '8px'
+    },
+    statusBadge: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '4px 8px',
+      borderRadius: '4px',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      marginBottom: '10px'
+    },
+    statusAccepted: {
+      backgroundColor: 'rgba(76, 175, 80, 0.2)',
+      color: colors.success
+    },
+    statusPending: {
+      backgroundColor: 'rgba(255, 152, 0, 0.2)',
+      color: colors.warning
+    },
+    statusRejected: {
+      backgroundColor: 'rgba(244, 67, 54, 0.2)',
+      color: colors.error
+    },
+    statusCompleted: {
+      backgroundColor: 'rgba(33, 150, 243, 0.2)',
+      color: colors.info
+    },
+    dateTimeSection: {
+      display: 'flex',
+      marginBottom: '10px',
+      alignItems: 'center'
+    },
+    dateLabel: {
+      display: 'flex',
+      alignItems: 'center',
+      marginRight: '16px',
+      fontSize: '14px',
+      color: 'rgba(255, 255, 255, 0.9)'
+    },
+    infoIcon: {
+      fontSize: '16px',
+      marginRight: '5px',
+      color: 'rgba(255, 255, 255, 0.7)'
+    },
+    detailItem: {
+      marginBottom: '8px',
+      fontSize: '14px',
+      color: 'rgba(255, 255, 255, 0.9)'
+    },
+    actionButton: {
+      padding: '10px 16px',
+      borderRadius: '6px',
+      border: 'none',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: '8px',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    },
+    acceptButton: {
+      backgroundColor: 'rgba(76, 175, 80, 0.15)',
+      color: '#66bb6a',
+      border: '1px solid rgba(76, 175, 80, 0.3)',
+      '&:hover': {
+        backgroundColor: 'rgba(76, 175, 80, 0.25)'
+      }
+    },
+    rejectButton: {
+      backgroundColor: 'rgba(244, 67, 54, 0.15)',
+      color: '#ef5350',
+      border: '1px solid rgba(244, 67, 54, 0.3)',
+      '&:hover': {
+        backgroundColor: 'rgba(244, 67, 54, 0.25)'
+      }
+    },
+    completeButton: {
+      backgroundColor: 'rgba(33, 150, 243, 0.15)',
+      color: '#42a5f5',
+      border: '1px solid rgba(33, 150, 243, 0.3)',
+      '&:hover': {
+        backgroundColor: 'rgba(33, 150, 243, 0.25)'
+      }
+    },
+    loading: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px',
+      color: colors.textLight
+    },
+    spinner: {
+      width: '40px',
+      height: '40px',
+      borderRadius: '50%',
+      border: `3px solid ${colors.divider}`,
+      borderTopColor: colors.primary,
+      animation: 'spin 1s linear infinite'
+    }
+  };
 
   useEffect(() => {
     // Check if there's user data in localStorage
@@ -155,35 +417,49 @@ const Appointments = () => {
     );
   };
 
-  // Get card class based on status
-  const getCardClass = (status) => {
+  // Get status badge style based on status
+  const getStatusStyle = (status) => {
+    const baseStyle = {
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '6px 10px',
+      borderRadius: '20px',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    };
+    
     switch(status) {
       case 'Accepted':
-        return 'card-accepted';
+        return { 
+          ...baseStyle, 
+          backgroundColor: 'rgba(76, 175, 80, 0.2)',
+          color: '#66bb6a',
+          border: '1px solid rgba(76, 175, 80, 0.3)'
+        };
       case 'Pending':
-        return 'card-pending';
+        return { 
+          ...baseStyle, 
+          backgroundColor: 'rgba(255, 152, 0, 0.2)',
+          color: '#ffa726',
+          border: '1px solid rgba(255, 152, 0, 0.3)'
+        };
       case 'Rejected':
-        return 'card-rejected';
+        return { 
+          ...baseStyle, 
+          backgroundColor: 'rgba(244, 67, 54, 0.2)',
+          color: '#ef5350',
+          border: '1px solid rgba(244, 67, 54, 0.3)'
+        };
       case 'Completed':
-        return 'card-completed';
+        return { 
+          ...baseStyle, 
+          backgroundColor: 'rgba(33, 150, 243, 0.2)',
+          color: '#42a5f5',
+          border: '1px solid rgba(33, 150, 243, 0.3)'
+        };
       default:
-        return '';
-    }
-  };
-
-  // Get status class for styling
-  const getStatusClass = (status) => {
-    switch(status) {
-      case 'Accepted':
-        return 'status-accepted';
-      case 'Pending':
-        return 'status-pending';
-      case 'Rejected':
-        return 'status-rejected';
-      case 'Completed':
-        return 'status-completed';
-      default:
-        return '';
+        return baseStyle;
     }
   };
 
@@ -214,34 +490,34 @@ const Appointments = () => {
     }
     
     return (
-      <div className="appointment-actions">
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
         {status !== 'Accepted' && (
           <button 
-            className="action-button accept-button"
+            style={{ ...styles.actionButton, ...styles.acceptButton }}
             onClick={() => updateAppointmentStatus(appointmentID, 'Accepted')}
             disabled={isLoading}
           >
-            {isLoading ? <span className="button-spinner"></span> : '✓ Kabul Et'}
+            {isLoading ? <span>⏳</span> : '✓ Kabul Et'}
           </button>
         )}
         
         {status !== 'Rejected' && (
           <button 
-            className="action-button cancel-button"
+            style={{ ...styles.actionButton, ...styles.rejectButton }}
             onClick={() => updateAppointmentStatus(appointmentID, 'Rejected')}
             disabled={isLoading}
           >
-            {isLoading ? <span className="button-spinner"></span> : '✕ Reddet'}
+            {isLoading ? <span>⏳</span> : '✕ Reddet'}
           </button>
         )}
         
         {status !== 'Completed' && status === 'Accepted' && (
           <button 
-            className="action-button complete-button"
+            style={{ ...styles.actionButton, ...styles.completeButton }}
             onClick={() => updateAppointmentStatus(appointmentID, 'Completed')}
             disabled={isLoading}
           >
-            {isLoading ? <span className="button-spinner"></span> : '✓ Tamamla'}
+            {isLoading ? <span>⏳</span> : '✓ Tamamla'}
           </button>
         )}
       </div>
@@ -250,125 +526,205 @@ const Appointments = () => {
   
   // Render a single appointment card
   const renderAppointmentCard = (appointment) => {
+    // Get card style based on status
+    const cardStatusStyle = (() => {
+      switch(appointment.status) {
+        case 'Accepted': return styles.cardAccepted;
+        case 'Pending': return styles.cardPending;
+        case 'Rejected': return styles.cardRejected;
+        case 'Completed': return styles.cardCompleted;
+        default: return {};
+      }
+    })();
+
     return (
       <div 
         key={appointment.appointmentID} 
-        className={`appointment-card ${getCardClass(appointment.status)}`}
+        style={{
+          ...styles.appointmentCard,
+          ...cardStatusStyle,
+          ':hover': {
+            transform: 'translateY(-3px)',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.2)'
+          }
+        }}
       >
-        <div className="card-left">
-          <div className="appointment-id">#{appointment.appointmentID}</div>
-          <div className={`appointment-status ${getStatusClass(appointment.status)}`}>
-            <span className="status-icon">{getStatusIcon(appointment.status)}</span>
+        <div style={styles.cardLeft}>
+          <div style={styles.appointmentID}># {appointment.appointmentID}</div>
+          <div style={getStatusStyle(appointment.status)}>
+            <span style={{ marginRight: '5px' }}>{getStatusIcon(appointment.status)}</span>
             {appointment.status}
           </div>
           {appointment.status === 'Pending' && (
-            <div className="need-attention-badge">
-              <span className="attention-icon">⚠️</span> Onay Bekliyor
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: '12px',
+              color: colors.warning,
+              marginTop: '8px'
+            }}>
+              <span style={{ marginRight: '4px' }}>⚠️</span> Awaiting Approval
             </div>
           )}
         </div>
         
-        <div className="card-mid">
-          <div className="appointment-datetime">
-            <div className="appointment-date">
-              <span className="info-icon">📅</span> {formatDate(appointment.appointmentDateTime)}
-            </div>
-            <div className="appointment-time">
-              <span className="info-icon">⏰</span> {formatTime(appointment.appointmentDateTime)}
+        <div style={styles.cardMid}>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={styles.dateTimeSection}>
+              <div style={styles.dateLabel}>
+                <span style={styles.infoIcon}>📅</span> {formatDate(appointment.appointmentDateTime)}
+              </div>
+              <div style={styles.dateLabel}>
+                <span style={styles.infoIcon}>⏰</span> {formatTime(appointment.appointmentDateTime)}
+              </div>
             </div>
           </div>
           
-          <div className="card-details">
-            <div className="appointment-customer">
-              <span className="info-icon">👤</span>
-              <span className="info-label">Müşteri:</span> {appointment.userID}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={styles.detailItem}>
+              <span style={styles.infoIcon}>👤</span>
+              <span style={{ fontWeight: 'bold', marginRight: '5px' }}>Customer ID:</span>#
+              {appointment.userID}
             </div>
             
             {appointment.note && (
-              <div className="appointment-note">
-                <span className="info-icon">📝</span>
-                <span className="info-label">Not:</span> {appointment.note}
+              <div style={styles.detailItem}>
+                <span style={styles.infoIcon}>📝</span>
+                <span style={{ fontWeight: 'bold', marginRight: '5px' }}>Note:</span> 
+                {appointment.note}
               </div>
             )}
             
-            <div className="appointment-created">
-              <span className="info-label">Oluşturulma:</span> {formatDateTime(appointment.createdAt)}
+            <div style={{ ...styles.detailItem, fontSize: '12px', color: colors.textLight }}>
+              <span style={{ fontWeight: 'bold', marginRight: '5px' }}>Created:</span> 
+              {formatDateTime(appointment.createdAt)}
             </div>
           </div>
         </div>
         
-        <div className="card-right">
+        <div style={styles.cardRight}>
           {renderActionButtons(appointment)}
         </div>
       </div>
     );
   };
 
-  // Get and filter appointments by different criteria
-  const todayAppointments = appointments.filter(app => isToday(app.appointmentDateTime));
+  // Get and filter appointments by different criteria - updated to exclude pending appointments from other tabs
+  const todayAppointments = appointments.filter(app => isToday(app.appointmentDateTime) && app.status !== 'Pending');
   const pendingAppointments = appointments.filter(app => app.status === 'Pending');
-  const sortedAppointments = sortAppointmentsByDate(appointments);
+  const allNonPendingAppointments = appointments.filter(app => app.status !== 'Pending');
+  const sortedAppointments = sortAppointmentsByDate(allNonPendingAppointments);
   
-  const renderSectionTitle = (title, count) => (
-    <div className="section-title">
-      <h3>{title}</h3>
-      <span className="appointment-count">{count}</span>
-    </div>
-  );
+  // Tabs data for cleaner rendering
+  const tabs = [
+    { id: 'today', label: "Today's Appointments", count: todayAppointments.length, icon: '📅' },
+    { id: 'pending', label: 'New Appointments (Accept or Decline)', count: pendingAppointments.length, icon: '⌛' },
+    { id: 'all', label: 'All Appointments', count: sortedAppointments.length, icon: '📋' }
+  ];
 
   return (
-    <div className="appointments-container">
-      <div className="appointments-header">
-        <h2>Randevular</h2>
-        <div className="business-info">
-          <p>İşletme ID: {userId}</p>
-          <p>İşletme Adı: {businessName}</p>
-        </div>
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <h2 style={styles.heading}>
+          <span style={{ 
+            fontSize: '24px', 
+            marginRight: '10px',
+            backgroundColor: 'rgba(63, 81, 181, 0.25)',
+            padding: '6px',
+            borderRadius: '8px',
+            display: 'inline-flex'
+          }}>
+            📅
+          </span>
+          Appointments
+        </h2>
       </div>
 
       {loading ? (
-        <div className="loading-indicator">
-          <div className="spinner"></div>
-          <p>Randevular yükleniyor...</p>
+        <div style={styles.loading}>
+          <div style={styles.spinner}></div>
+          <p style={{ marginTop: '16px' }}>Randevular yükleniyor...</p>
         </div>
       ) : error ? (
-        <div className="error-message">{error}</div>
+        <div style={{ 
+          padding: '16px', 
+          color: colors.error, 
+          backgroundColor: 'rgba(244, 67, 54, 0.2)',
+          borderRadius: '4px' 
+        }}>
+          {error}
+        </div>
       ) : (
-        <div className="appointments-sections">
-          {/* Today's Appointments Section */}
-          <div className="appointment-section">
-            {renderSectionTitle("Bugünkü Randevular", todayAppointments.length)}
-            <div className="appointment-list">
-              {todayAppointments.length === 0 ? (
-                <div className="empty-section">Bugün için randevu bulunmamaktadır</div>
-              ) : (
-                todayAppointments.map(renderAppointmentCard)
-              )}
-            </div>
+        <div>
+          {/* Tabs Navigation */}
+          <div style={styles.tabsContainer}>
+            {tabs.map(tab => (
+              <button 
+                key={tab.id}
+                style={{
+                  ...styles.tabButton,
+                  ...(activeTab === tab.id ? styles.activeTab : {})
+                }}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <span style={{ marginRight: '5px' }}>{tab.icon}</span>
+                {tab.label}
+                <span style={{
+                  ...styles.tabCount,
+                  ...(activeTab === tab.id ? styles.activeTabCount : {})
+                }}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
           </div>
           
-          {/* Pending Appointments Section */}
-          <div className="appointment-section">
-            {renderSectionTitle("Onay Bekleyen Randevular", pendingAppointments.length)}
-            <div className="appointment-list">
-              {pendingAppointments.length === 0 ? (
-                <div className="empty-section">Onay bekleyen randevu bulunmamaktadır</div>
-              ) : (
-                pendingAppointments.map(renderAppointmentCard)
-              )}
-            </div>
-          </div>
-          
-          {/* All Appointments Section */}
-          <div className="appointment-section">
-            {renderSectionTitle("Tüm Randevular", sortedAppointments.length)}
-            <div className="appointment-list">
-              {sortedAppointments.length === 0 ? (
-                <div className="empty-section">Randevu bulunmamaktadır</div>
-              ) : (
-                sortedAppointments.map(renderAppointmentCard)
-              )}
-            </div>
+          {/* Tab Content */}
+          <div style={styles.tabContent}>
+            {/* Today's Appointments Tab */}
+            {activeTab === 'today' && (
+              <div>
+                {todayAppointments.length === 0 ? (
+                  <div style={styles.emptySection}>No appointments found for today</div>
+                ) : (
+                  todayAppointments.map(app => 
+                    <div key={app.appointmentID}>
+                      {renderAppointmentCard(app)}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+            
+            {/* Pending Appointments Tab */}
+            {activeTab === 'pending' && (
+              <div>
+                {pendingAppointments.length === 0 ? (
+                  <div style={styles.emptySection}>No new appointments requiring approval</div>
+                ) : (
+                  pendingAppointments.map(app => 
+                    <div key={app.appointmentID}>
+                      {renderAppointmentCard(app)}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+            
+            {/* All Appointments Tab */}
+            {activeTab === 'all' && (
+              <div>
+                {sortedAppointments.length === 0 ? (
+                  <div style={styles.emptySection}>No completed or accepted appointments found</div>
+                ) : (
+                  sortedAppointments.map(app => 
+                    <div key={app.appointmentID}>
+                      {renderAppointmentCard(app)}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

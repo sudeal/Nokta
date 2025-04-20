@@ -138,7 +138,7 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
           <input
             type="text"
             name="name"
-            placeholder="Enter your name"
+            placeholder="Enter your business's name"
             value={formData.name}
             onChange={handleChange}
             required
