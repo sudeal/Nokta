@@ -267,6 +267,37 @@ const Appointments = () => {
       border: `3px solid ${colors.divider}`,
       borderTopColor: colors.primary,
       animation: 'spin 1s linear infinite'
+    },
+    // Add a pulsing animation to the tab button for new appointments
+    pendingTabFlash: {
+      animation: 'pulseNotification 2s infinite',
+      position: 'relative',
+      overflow: 'visible'
+    },
+    
+    // Add a notification dot to indicate new appointments
+    notificationDot: {
+      position: 'absolute',
+      top: '4px',
+      right: '4px',
+      width: '12px',
+      height: '12px',
+      backgroundColor: '#ff4081',
+      borderRadius: '50%',
+      boxShadow: '0 0 0 rgba(255, 64, 129, 0.4)',
+      animation: 'pulse 1.5s infinite'
+    },
+    
+    // Add a glow effect around the tab
+    tabGlow: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: '4px',
+      pointerEvents: 'none',
+      animation: 'glowPulse 2s infinite alternate'
     }
   };
 
@@ -370,10 +401,10 @@ const Appointments = () => {
     }
   };
 
-  // Format date and time for display
+  // Format date and time for display - changed to English locale
   const formatDateTime = (dateTimeStr) => {
     const date = new Date(dateTimeStr);
-    return date.toLocaleString('tr-TR', {
+    return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -382,20 +413,20 @@ const Appointments = () => {
     });
   };
 
-  // Format date only
+  // Format date only - changed to English locale
   const formatDate = (dateTimeStr) => {
     const date = new Date(dateTimeStr);
-    return date.toLocaleDateString('tr-TR', {
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
   };
 
-  // Format time only
+  // Format time only - changed to English locale
   const formatTime = (dateTimeStr) => {
     const date = new Date(dateTimeStr);
-    return date.toLocaleTimeString('tr-TR', {
+    return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -497,7 +528,7 @@ const Appointments = () => {
             onClick={() => updateAppointmentStatus(appointmentID, 'Accepted')}
             disabled={isLoading}
           >
-            {isLoading ? <span>⏳</span> : '✓ Kabul Et'}
+            {isLoading ? <span>⏳</span> : '✓ Accept'}
           </button>
         )}
         
@@ -507,7 +538,7 @@ const Appointments = () => {
             onClick={() => updateAppointmentStatus(appointmentID, 'Rejected')}
             disabled={isLoading}
           >
-            {isLoading ? <span>⏳</span> : '✕ Reddet'}
+            {isLoading ? <span>⏳</span> : '✕ Reject'}
           </button>
         )}
         
@@ -517,7 +548,7 @@ const Appointments = () => {
             onClick={() => updateAppointmentStatus(appointmentID, 'Completed')}
             disabled={isLoading}
           >
-            {isLoading ? <span>⏳</span> : '✓ Tamamla'}
+            {isLoading ? <span>⏳</span> : '✓ Complete'}
           </button>
         )}
       </div>
@@ -622,8 +653,54 @@ const Appointments = () => {
     { id: 'all', label: 'All Appointments', count: sortedAppointments.length, icon: '📋' }
   ];
 
+  // Create a style tag for keyframe animations
+  const renderAnimationStyles = () => {
+    return (
+      <style>
+        {`
+          @keyframes pulseNotification {
+            0% {
+              background-color: transparent;
+            }
+            50% {
+              background-color: rgba(255, 64, 129, 0.25);
+            }
+            100% {
+              background-color: transparent;
+            }
+          }
+          
+          @keyframes pulse {
+            0% {
+              transform: scale(0.95);
+              box-shadow: 0 0 0 0 rgba(255, 64, 129, 0.7);
+            }
+            70% {
+              transform: scale(1.1);
+              box-shadow: 0 0 0 10px rgba(255, 64, 129, 0);
+            }
+            100% {
+              transform: scale(0.95);
+              box-shadow: 0 0 0 0 rgba(255, 64, 129, 0);
+            }
+          }
+          
+          @keyframes glowPulse {
+            0% {
+              box-shadow: 0 0 5px 0px rgba(255, 64, 129, 0.3);
+            }
+            100% {
+              box-shadow: 0 0 15px 5px rgba(255, 64, 129, 0.5);
+            }
+          }
+        `}
+      </style>
+    );
+  };
+
   return (
     <div style={styles.container}>
+      {renderAnimationStyles()}
       <div style={styles.header}>
         <h2 style={styles.heading}>
           <span style={{ 
@@ -643,7 +720,7 @@ const Appointments = () => {
       {loading ? (
         <div style={styles.loading}>
           <div style={styles.spinner}></div>
-          <p style={{ marginTop: '16px' }}>Randevular yükleniyor...</p>
+          <p style={{ marginTop: '16px' }}>Loading appointments...</p>
         </div>
       ) : error ? (
         <div style={{ 
@@ -663,7 +740,8 @@ const Appointments = () => {
                 key={tab.id}
                 style={{
                   ...styles.tabButton,
-                  ...(activeTab === tab.id ? styles.activeTab : {})
+                  ...(activeTab === tab.id ? styles.activeTab : {}),
+                  ...(tab.id === 'pending' && pendingAppointments.length > 0 ? styles.pendingTabFlash : {})
                 }}
                 onClick={() => setActiveTab(tab.id)}
               >
@@ -675,6 +753,12 @@ const Appointments = () => {
                 }}>
                   {tab.count}
                 </span>
+                {tab.id === 'pending' && pendingAppointments.length > 0 && (
+                  <>
+                    <span style={styles.notificationDot}></span>
+                    <span style={styles.tabGlow}></span>
+                  </>
+                )}
               </button>
             ))}
           </div>
