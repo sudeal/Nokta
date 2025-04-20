@@ -17,7 +17,7 @@ export default function NewBookingScreen({ navigation }) {
   // Animasyon değerleri
   const healthAnim = new Animated.Value(0);
   const foodAnim = new Animated.Value(0);
-  const selfcareAnim = new Animated.Value(0);
+  const personalCareAnim = new Animated.Value(0);
 
   useEffect(() => {
     // Kartların sırayla görünme animasyonu
@@ -34,7 +34,7 @@ export default function NewBookingScreen({ navigation }) {
         friction: 7,
         useNativeDriver: true,
       }),
-      Animated.spring(selfcareAnim, {
+      Animated.spring(personalCareAnim, {
         toValue: 1,
         tension: 50,
         friction: 7,
@@ -148,11 +148,11 @@ export default function NewBookingScreen({ navigation }) {
             foodAnim
           )}
           {renderCategoryCard(
-            'Selfcare',
+            'Personal Care',
             <Ionicons name="cut" size={32} color="#fff" />,
             'rgba(175, 82, 222, 0.9)',
             ['Male Coiffure', 'Female Coiffure', 'Nail Studios', 'Tattoo & Piercing'],
-            selfcareAnim
+            personalCareAnim
           )}
         </View>
       </ScrollView>

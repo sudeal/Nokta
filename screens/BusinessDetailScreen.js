@@ -47,16 +47,16 @@ const categoryColors = {
     lightText: '#718096',
     accent: '#FF9800'
   },
-  'Selfcare': {
-    primary: '#9C27B0',
-    secondary: '#BA68C8',
-    gradient: ['#9C27B0', '#AB47BC', '#BA68C8'],
-    lightGradient: ['rgba(156, 39, 176, 0.9)', 'rgba(186, 104, 200, 0.9)'],
-    cardGradient: ['rgba(156, 39, 176, 0.15)', 'rgba(186, 104, 200, 0.1)'],
-    background: '#F3E5F5',
+  'Personal Care': {
+    primary: '#7E22CE',
+    secondary: '#A855F7',
+    gradient: ['#7E22CE', '#9333EA', '#A855F7'],
+    lightGradient: ['rgba(126, 34, 206, 0.9)', 'rgba(168, 85, 247, 0.9)'],
+    cardGradient: ['rgba(126, 34, 206, 0.15)', 'rgba(168, 85, 247, 0.1)'],
+    background: '#F3E8FF',
     text: '#2D3748',
     lightText: '#718096',
-    accent: '#E040FB'
+    accent: '#C084FC'
   }
 };
 
@@ -82,8 +82,10 @@ const getColorScheme = (category) => {
     return categoryColors['Food & Beverages'];
   }
   if (lowerCategory.includes('hair') || lowerCategory.includes('beauty') || 
-      lowerCategory.includes('salon') || lowerCategory.includes('spa')) {
-    return categoryColors['Selfcare'];
+      lowerCategory.includes('salon') || lowerCategory.includes('spa') ||
+      lowerCategory.includes('personal') || lowerCategory.includes('care') ||
+      lowerCategory.includes('coiffure') || lowerCategory.includes('berber')) {
+    return categoryColors['Personal Care'];
   }
   
   return defaultScheme;

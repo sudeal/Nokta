@@ -35,7 +35,7 @@ const categoryData = {
       { name: "Pub & Bars", icon: "beer-outline" },
     ],
   },
-  Selfcare: {
+  "Personal Care": {
     color: ["#8E2DE2", "#4A00E0"],
     icon: "cut",
     subcategories: [
@@ -94,7 +94,9 @@ export default function BusinessListScreen({ route, navigation }) {
     icon: "business",
     subcategories: [],
   };
-  const [businesses, setBusinesses] = useState([]);
+  
+  // Her alt kategori için ayrı state tutuyoruz
+  const [businessesByCategory, setBusinessesByCategory] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const {
@@ -104,188 +106,136 @@ export default function BusinessListScreen({ route, navigation }) {
     loading: locationLoading,
   } = useLocation();
 
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  // Konum ve adres bilgilerini state'de sakla
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [currentAddress, setCurrentAddress] = useState(null);
 
+  // Konum bilgisi değiştiğinde state'i güncelle
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [selectedSubcategory]);
+    if (userLocation && userAddress) {
+      setCurrentLocation(userLocation);
+      setCurrentAddress(userAddress);
+    }
+  }, [userLocation, userAddress]);
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const handleSubcategoryPress = async (subcategory) => {
+    // Seçili alt kategoriyi güncelle
+    setSelectedSubcategory(subcategory);
+    
+    // Eğer bu kategorideki işletmeler zaten yüklenmişse, tekrar yükleme
+    if (businessesByCategory[subcategory.name]?.length > 0) {
+      return;
+    }
+
+    // İşletmeleri yükle
+    await fetchBusinesses(subcategory);
+  };
 
   const fetchBusinesses = async (subcategory) => {
+    if (!subcategory) return;
+    
     setLoading(true);
     try {
-      console.log("Fetching businesses...");
-      console.log("User address:", userAddress);
-
       const response = await fetch(
         "https://nokta-appservice.azurewebsites.net/api/Business"
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
-
-      console.log("API Response:", data);
-
-      let filteredBusinesses = [];
+      let filteredBusinesses = data;
 
       // Kategori bazında filtreleme
       if (category === "Food & Beverages") {
         switch (subcategory.name) {
           case "Restaurants":
-            filteredBusinesses = data.filter((business) =>
+            filteredBusinesses = data.filter((business) => 
               business.name.startsWith("Restaurant -")
             );
             break;
           case "Desserts":
-            filteredBusinesses = data.filter(
-              (business) =>
-                business.name.startsWith("Dessert -") ||
-                business.name.startsWith("Pastry -")
+            filteredBusinesses = data.filter((business) => 
+              business.name.startsWith("Dessert -") ||
+              business.name.startsWith("Pastry -")
             );
             break;
           case "Fine Dining":
-            filteredBusinesses = data.filter((business) =>
+            filteredBusinesses = data.filter((business) => 
               business.name.startsWith("Fine Dining -")
             );
             break;
           case "Pub & Bars":
-            filteredBusinesses = data.filter(
-              (business) =>
-                business.name.startsWith("Pub -") ||
-                business.name.startsWith("Bar -")
+            filteredBusinesses = data.filter((business) => 
+              business.name.startsWith("Pub -") ||
+              business.name.startsWith("Bar -")
+            );
+            break;
+        }
+      } else if (category === "Health Services") {
+        switch (subcategory.name) {
+          case "Doctor":
+            filteredBusinesses = data.filter((business) => 
+              business.name.startsWith("Doctor -")
+            );
+            break;
+          case "Dentist":
+            filteredBusinesses = data.filter((business) => 
+              business.name.startsWith("Dentist -")
+            );
+            break;
+          case "Vet":
+            filteredBusinesses = data.filter((business) => 
+              business.name.startsWith("Vet -")
+            );
+            break;
+        }
+      } else if (category === "Personal Care") {
+        switch (subcategory.name) {
+          case "Male Coiffure":
+            filteredBusinesses = data.filter((business) => 
+              business.name.startsWith("Male Coiffure -")
+            );
+            break;
+          case "Female Coiffure":
+            filteredBusinesses = data.filter((business) => 
+              business.name.startsWith("Female Coiffure -")
+            );
+            break;
+          case "Nail Studios":
+            filteredBusinesses = data.filter((business) => 
+              business.name.startsWith("Nail Studio -")
+            );
+            break;
+          case "Tattoo & Piercing":
+            filteredBusinesses = data.filter((business) => 
+              business.name.startsWith("Tattoo -") ||
+              business.name.startsWith("Piercing -")
             );
             break;
         }
       }
 
-      // İlçe bazında filtreleme
-      if (userAddress?.district) {
-        console.log("Filtering by district:", userAddress.district);
-
-        filteredBusinesses = filteredBusinesses.filter((business) => {
-          // İşletmenin ilçe bilgisini adresinden çıkar
-          const businessDistrict = business.address
-            ?.split(",")
-            .map((part) => part.trim())
-            .find(
-              (part) =>
-                part.toLowerCase() === userAddress.district.toLowerCase()
-            );
-
-          console.log("Business:", business.name);
-          console.log("Business district:", businessDistrict);
-
-          return businessDistrict !== undefined;
-        });
-      } else {
-        console.log("No district information available");
-      }
-
-      setBusinesses(filteredBusinesses);
+      // Filtrelenmiş işletmeleri ilgili kategoriye kaydet
+      setBusinessesByCategory(prev => ({
+        ...prev,
+        [subcategory.name]: filteredBusinesses
+      }));
     } catch (error) {
       console.error("Error in fetchBusinesses:", error);
-      setBusinesses([]);
+      setBusinessesByCategory(prev => ({
+        ...prev,
+        [subcategory.name]: prev[subcategory.name] || []
+      }));
     } finally {
       setLoading(false);
     }
   };
-
-  const handleSubcategoryPress = (subcategory) => {
-    setSelectedSubcategory(subcategory);
-    fetchBusinesses(subcategory);
-  };
-
-  const handleBusinessPress = (business) => {
-    navigation.navigate("BusinessDetail", { business });
-  };
-
-  const formatDistance = (distance) => {
-    if (distance === null || distance === undefined || isNaN(distance)) {
-      return "Calculating...";
-    }
-    if (distance < 1) {
-      return `${Math.round(distance * 1000)}m`;
-    }
-    return `${distance.toFixed(1)}km`;
-  };
-
-  const renderBusinessCard = (business, index) => (
-    <Animated.View
-      key={business.businessID || index}
-      style={{
-        opacity: fadeAnim,
-        transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-      }}
-    >
-      <TouchableOpacity
-        style={[styles.businessCard, { marginTop: index === 0 ? 0 : 16 }]}
-        onPress={() => handleBusinessPress(business)}
-        activeOpacity={0.7}
-      >
-        <LinearGradient
-          colors={categoryInfo.color}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.businessGradient}
-        >
-          <View style={styles.businessInfo}>
-            <Text style={styles.businessName}>
-              {business?.name || "Unnamed Business"}
-            </Text>
-            <Text style={styles.businessAddress}>
-              {business?.address || "Address not available"}
-            </Text>
-            <View style={styles.businessDetailsRow}>
-              <View style={styles.businessHoursContainer}>
-                <Ionicons
-                  name="time-outline"
-                  size={16}
-                  color="rgba(255, 255, 255, 0.9)"
-                />
-                <Text style={styles.businessHours}>
-                  {business?.openingHour != null &&
-                  business?.closingHour != null
-                    ? `${formatHourToTime(
-                        business.openingHour
-                      )} - ${formatHourToTime(business.closingHour)}`
-                    : "Hours not available"}
-                </Text>
-              </View>
-              <View style={styles.distanceContainer}>
-                <Ionicons
-                  name="location-outline"
-                  size={16}
-                  color="rgba(255, 255, 255, 0.9)"
-                />
-                <Text style={styles.distanceText}>
-                  {userAddress?.district || "Loading location..."}
-                </Text>
-              </View>
-            </View>
-          </View>
-          <View style={styles.arrowContainer}>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    </Animated.View>
-  );
 
   const renderContent = () => {
     if (selectedSubcategory) {
@@ -297,14 +247,16 @@ export default function BusinessListScreen({ route, navigation }) {
         );
       }
 
-      if (!businesses || businesses.length === 0) {
+      const currentBusinesses = businessesByCategory[selectedSubcategory.name] || [];
+      
+      if (currentBusinesses.length === 0) {
         return (
           <Animated.View
             style={[
               styles.noResultsContainer,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+                transform: [{ translateY: slideAnim }],
               },
             ]}
           >
@@ -336,9 +288,67 @@ export default function BusinessListScreen({ route, navigation }) {
             <Text style={styles.welcomeText}>{getWelcomeMessage()}</Text>
           </Animated.View>
 
-          {businesses.map((business, index) =>
-            renderBusinessCard(business, index)
-          )}
+          {currentBusinesses.map((business, index) => (
+            <Animated.View
+              key={business.businessID || index}
+              style={{
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              }}
+            >
+              <TouchableOpacity
+                style={[styles.businessCard, { marginTop: index === 0 ? 0 : 16 }]}
+                onPress={() => navigation.navigate("BusinessDetail", { business })}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={categoryInfo.color}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.businessGradient}
+                >
+                  <View style={styles.businessInfo}>
+                    <Text style={styles.businessName}>
+                      {business?.name || "Unnamed Business"}
+                    </Text>
+                    <Text style={styles.businessAddress}>
+                      {business?.address || "Address not available"}
+                    </Text>
+                    <View style={styles.businessDetailsRow}>
+                      <View style={styles.businessHoursContainer}>
+                        <Ionicons
+                          name="time-outline"
+                          size={16}
+                          color="rgba(255, 255, 255, 0.9)"
+                        />
+                        <Text style={styles.businessHours}>
+                          {business?.openingHour != null &&
+                          business?.closingHour != null
+                            ? `${formatHourToTime(
+                                business.openingHour
+                              )} - ${formatHourToTime(business.closingHour)}`
+                            : "Hours not available"}
+                        </Text>
+                      </View>
+                      <View style={styles.distanceContainer}>
+                        <Ionicons
+                          name="location-outline"
+                          size={16}
+                          color="rgba(255, 255, 255, 0.9)"
+                        />
+                        <Text style={styles.distanceText}>
+                          {currentAddress?.district || "Loading location..."}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.arrowContainer}>
+                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
         </Animated.ScrollView>
       );
     }
@@ -408,7 +418,7 @@ export default function BusinessListScreen({ route, navigation }) {
             onPress={() => {
               if (selectedSubcategory) {
                 setSelectedSubcategory(null);
-                setBusinesses([]);
+                setBusinessesByCategory({});
               } else {
                 navigation.goBack();
               }
