@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,68 +10,100 @@ import {
   Animated,
   Dimensions,
   Platform,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import useLocation from "../hooks/useLocation";
 
 const categoryData = {
-  'Health Services': {
-    color: ['#4158D0', '#C850C0'],
-    icon: 'medical',
+  "Health Services": {
+    color: ["#4158D0", "#C850C0"],
+    icon: "medical",
     subcategories: [
-      { name: 'Doctor', icon: 'medical-outline' },
-      { name: 'Dentist', icon: 'tooth-outline' },
-      { name: 'Vet', icon: 'paw-outline' },
+      { name: "Doctor", icon: "medical-outline" },
+      { name: "Dentist", icon: "tooth-outline" },
+      { name: "Vet", icon: "paw-outline" },
     ],
   },
-  'Food & Beverages': {
-    color: ['#FF9966', '#FF5E62'],
-    icon: 'restaurant',
+  "Food & Beverages": {
+    color: ["#FF9966", "#FF5E62"],
+    icon: "restaurant",
     subcategories: [
-      { name: 'Restaurants', icon: 'restaurant-outline' },
-      { name: 'Desserts', icon: 'ice-cream-outline' },
-      { name: 'Fine Dining', icon: 'wine-outline' },
-      { name: 'Pub & Bars', icon: 'beer-outline' },
+      { name: "Restaurants", icon: "restaurant-outline" },
+      { name: "Desserts", icon: "ice-cream-outline" },
+      { name: "Fine Dining", icon: "wine-outline" },
+      { name: "Pub & Bars", icon: "beer-outline" },
     ],
   },
-  'Selfcare': {
-    color: ['#8E2DE2', '#4A00E0'],
-    icon: 'cut',
+  Selfcare: {
+    color: ["#8E2DE2", "#4A00E0"],
+    icon: "cut",
     subcategories: [
-      { name: 'Male Coiffure', icon: 'man-outline' },
-      { name: 'Female Coiffure', icon: 'woman-outline' },
-      { name: 'Nail Studios', icon: 'hand-left-outline' },
-      { name: 'Tattoo & Piercing', icon: 'brush-outline' },
+      { name: "Male Coiffure", icon: "man-outline" },
+      { name: "Female Coiffure", icon: "woman-outline" },
+      { name: "Nail Studios", icon: "hand-left-outline" },
+      { name: "Tattoo & Piercing", icon: "brush-outline" },
     ],
   },
 };
 
 const getDistance = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) {
+    return null;
+  }
+
+  const lat1Rad = (lat1 * Math.PI) / 180;
+  const lon1Rad = (lon1 * Math.PI) / 180;
+  const lat2Rad = (lat2 * Math.PI) / 180;
+  const lon2Rad = (lon2 * Math.PI) / 180;
+
   const R = 6371; // Dünya'nın yarıçapı (km)
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
+  const dLat = lat2Rad - lat1Rad;
+  const dLon = lon2Rad - lon1Rad;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1Rad) *
+      Math.cos(lat2Rad) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+
+  return distance;
 };
 
 const getWelcomeMessage = () => {
   return "Quality services you're looking for are at your fingertips 🌟";
 };
 
+const formatHourToTime = (decimalHour) => {
+  if (decimalHour === undefined || decimalHour === null) return "";
+
+  const hours = Math.floor(decimalHour);
+  const minutes = Math.round((decimalHour - hours) * 60);
+
+  return `${hours.toString().padStart(2, "0")}:${minutes
+    .toString()
+    .padStart(2, "0")}`;
+};
+
 export default function BusinessListScreen({ route, navigation }) {
   const { category } = route.params;
-  const categoryInfo = categoryData[category];
+  const categoryInfo = categoryData[category] || {
+    color: ["#1A1A1A", "#2D2D2D"],
+    icon: "business",
+    subcategories: [],
+  };
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
-  const [locationError, setLocationError] = useState(null);
-  
+  const {
+    location: userLocation,
+    address: userAddress,
+    errorMsg: locationError,
+    loading: locationLoading,
+  } = useLocation();
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -97,129 +129,77 @@ export default function BusinessListScreen({ route, navigation }) {
     ]).start();
   }, [selectedSubcategory]);
 
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocationError('Konum izni reddedildi');
-        return;
-      }
-
-      try {
-        const location = await Location.getCurrentPositionAsync({});
-        setUserLocation(location.coords);
-      } catch (error) {
-        setLocationError('Konum alınamadı');
-      }
-    })();
-  }, []);
-
   const fetchBusinesses = async (subcategory) => {
     setLoading(true);
     try {
-      const response = await fetch('https://nokta-appservice.azurewebsites.net/api/Business');
+      console.log("Fetching businesses...");
+      console.log("User address:", userAddress);
+
+      const response = await fetch(
+        "https://nokta-appservice.azurewebsites.net/api/Business"
+      );
       const data = await response.json();
-      
+
+      console.log("API Response:", data);
+
       let filteredBusinesses = [];
-      
-      // Food & Beverages kategorisi için filtreler
-      if (category === 'Food & Beverages') {
+
+      // Kategori bazında filtreleme
+      if (category === "Food & Beverages") {
         switch (subcategory.name) {
-          case 'Restaurants':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Restaurant -')
+          case "Restaurants":
+            filteredBusinesses = data.filter((business) =>
+              business.name.startsWith("Restaurant -")
             );
             break;
-          case 'Desserts':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Dessert -') || 
-              business.name.startsWith('Pastry -')
+          case "Desserts":
+            filteredBusinesses = data.filter(
+              (business) =>
+                business.name.startsWith("Dessert -") ||
+                business.name.startsWith("Pastry -")
             );
             break;
-          case 'Fine Dining':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Fine Dining -')
+          case "Fine Dining":
+            filteredBusinesses = data.filter((business) =>
+              business.name.startsWith("Fine Dining -")
             );
             break;
-          case 'Pub & Bars':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Pub -') || 
-              business.name.startsWith('Bar -')
-            );
-            break;
-        }
-      }
-      // Health Services kategorisi için filtreler
-      else if (category === 'Health Services') {
-        switch (subcategory.name) {
-          case 'Doctor':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Doctor -')
-            );
-            break;
-          case 'Dentist':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Dentist -')
-            );
-            break;
-          case 'Vet':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Vet -') ||
-              business.name.startsWith('Veterinary -')
-            );
-            break;
-        }
-      }
-      // Selfcare kategorisi için filtreler
-      else if (category === 'Selfcare') {
-        switch (subcategory.name) {
-          case 'Male Coiffure':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Barber -') ||
-              business.name.startsWith('Male Hair Salon -')
-            );
-            break;
-          case 'Female Coiffure':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Hair Salon -') ||
-              business.name.startsWith('Female Hair Salon -')
-            );
-            break;
-          case 'Nail Studios':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Nail Salon -') ||
-              business.name.startsWith('Nail Studio -')
-            );
-            break;
-          case 'Tattoo & Piercing':
-            filteredBusinesses = data.filter(business => 
-              business.name.startsWith('Tattoo -') ||
-              business.name.startsWith('Piercing -')
+          case "Pub & Bars":
+            filteredBusinesses = data.filter(
+              (business) =>
+                business.name.startsWith("Pub -") ||
+                business.name.startsWith("Bar -")
             );
             break;
         }
       }
 
-      // Add distance to each business and sort by distance
-      if (userLocation) {
-        filteredBusinesses = filteredBusinesses.map(business => ({
-          ...business,
-          distance: getDistance(
-            userLocation.latitude,
-            userLocation.longitude,
-            business.latitude,
-            business.longitude
-          )
-        })).sort((a, b) => a.distance - b.distance);
-      }
+      // İlçe bazında filtreleme
+      if (userAddress?.district) {
+        console.log("Filtering by district:", userAddress.district);
 
-      console.log('Selected category:', category);
-      console.log('Selected subcategory:', subcategory.name);
-      console.log('Filtered businesses:', filteredBusinesses);
+        filteredBusinesses = filteredBusinesses.filter((business) => {
+          // İşletmenin ilçe bilgisini adresinden çıkar
+          const businessDistrict = business.address
+            ?.split(",")
+            .map((part) => part.trim())
+            .find(
+              (part) =>
+                part.toLowerCase() === userAddress.district.toLowerCase()
+            );
+
+          console.log("Business:", business.name);
+          console.log("Business district:", businessDistrict);
+
+          return businessDistrict !== undefined;
+        });
+      } else {
+        console.log("No district information available");
+      }
 
       setBusinesses(filteredBusinesses);
     } catch (error) {
-      console.error('Error fetching businesses:', error);
+      console.error("Error in fetchBusinesses:", error);
       setBusinesses([]);
     } finally {
       setLoading(false);
@@ -232,8 +212,80 @@ export default function BusinessListScreen({ route, navigation }) {
   };
 
   const handleBusinessPress = (business) => {
-    navigation.navigate('BusinessDetail', { business });
+    navigation.navigate("BusinessDetail", { business });
   };
+
+  const formatDistance = (distance) => {
+    if (distance === null || distance === undefined || isNaN(distance)) {
+      return "Calculating...";
+    }
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)}m`;
+    }
+    return `${distance.toFixed(1)}km`;
+  };
+
+  const renderBusinessCard = (business, index) => (
+    <Animated.View
+      key={business.businessID || index}
+      style={{
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+      }}
+    >
+      <TouchableOpacity
+        style={[styles.businessCard, { marginTop: index === 0 ? 0 : 16 }]}
+        onPress={() => handleBusinessPress(business)}
+        activeOpacity={0.7}
+      >
+        <LinearGradient
+          colors={categoryInfo.color}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.businessGradient}
+        >
+          <View style={styles.businessInfo}>
+            <Text style={styles.businessName}>
+              {business?.name || "Unnamed Business"}
+            </Text>
+            <Text style={styles.businessAddress}>
+              {business?.address || "Address not available"}
+            </Text>
+            <View style={styles.businessDetailsRow}>
+              <View style={styles.businessHoursContainer}>
+                <Ionicons
+                  name="time-outline"
+                  size={16}
+                  color="rgba(255, 255, 255, 0.9)"
+                />
+                <Text style={styles.businessHours}>
+                  {business?.openingHour != null &&
+                  business?.closingHour != null
+                    ? `${formatHourToTime(
+                        business.openingHour
+                      )} - ${formatHourToTime(business.closingHour)}`
+                    : "Hours not available"}
+                </Text>
+              </View>
+              <View style={styles.distanceContainer}>
+                <Ionicons
+                  name="location-outline"
+                  size={16}
+                  color="rgba(255, 255, 255, 0.9)"
+                />
+                <Text style={styles.distanceText}>
+                  {userAddress?.district || "Loading location..."}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.arrowContainer}>
+            <Ionicons name="arrow-forward" size={20} color="#fff" />
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
+  );
 
   const renderContent = () => {
     if (selectedSubcategory) {
@@ -245,18 +297,15 @@ export default function BusinessListScreen({ route, navigation }) {
         );
       }
 
-      if (businesses.length === 0) {
+      if (!businesses || businesses.length === 0) {
         return (
-          <Animated.View 
+          <Animated.View
             style={[
               styles.noResultsContainer,
               {
                 opacity: fadeAnim,
-                transform: [
-                  { translateY: slideAnim },
-                  { scale: scaleAnim }
-                ],
-              }
+                transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+              },
             ]}
           >
             <Text style={styles.noResultsText}>İşletme bulunamadı</Text>
@@ -265,14 +314,15 @@ export default function BusinessListScreen({ route, navigation }) {
       }
 
       return (
-        <Animated.ScrollView 
+        <Animated.ScrollView
           style={[
             styles.businessList,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
-            }
+            },
           ]}
+          showsVerticalScrollIndicator={false}
         >
           <Animated.View
             style={[
@@ -280,69 +330,27 @@ export default function BusinessListScreen({ route, navigation }) {
               {
                 opacity: fadeAnim,
                 transform: [{ translateY: slideAnim }],
-              }
+              },
             ]}
           >
             <Text style={styles.welcomeText}>{getWelcomeMessage()}</Text>
           </Animated.View>
 
-          {businesses.map((business, index) => (
-            <Animated.View
-              key={business.businessID}
-              style={{
-                opacity: fadeAnim,
-                transform: [
-                  { translateY: slideAnim },
-                  { scale: scaleAnim }
-                ],
-              }}
-            >
-              <TouchableOpacity
-                style={[styles.businessCard, { marginTop: index === 0 ? 0 : 16 }]}
-                onPress={() => handleBusinessPress(business)}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={categoryInfo.color}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.businessGradient}
-                >
-                  <View style={styles.businessInfo}>
-                    <Text style={styles.businessName}>{business.name}</Text>
-                    <Text style={styles.businessAddress}>{business.address}</Text>
-                    <View style={styles.businessDetailsRow}>
-                      <Text style={styles.businessHours}>
-                        {business.openingHour}:00 - {business.closingHour}:00
-                      </Text>
-                      {business.distance && (
-                        <Text style={styles.distanceText}>
-                          {business.distance < 1 
-                            ? `${Math.round(business.distance * 1000)} m`
-                            : `${business.distance.toFixed(1)} km`}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                  <View style={styles.arrowContainer}>
-                    <Ionicons name="arrow-forward" size={20} color="#fff" />
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
+          {businesses.map((business, index) =>
+            renderBusinessCard(business, index)
+          )}
         </Animated.ScrollView>
       );
     }
 
     return (
-      <Animated.View 
+      <Animated.View
         style={[
           styles.subcategoriesContainer,
           {
             opacity: fadeAnim,
             transform: [{ translateY: slideAnim }],
-          }
+          },
         ]}
       >
         {categoryInfo.subcategories.map((subcategory, index) => (
@@ -359,9 +367,15 @@ export default function BusinessListScreen({ route, navigation }) {
               end={{ x: 1, y: 0 }}
             >
               <View style={styles.iconContainer}>
-                <Ionicons name={subcategory.icon} size={32} color="#fff" />
+                <Ionicons
+                  name={subcategory.icon || "business"}
+                  size={32}
+                  color="#fff"
+                />
               </View>
-              <Text style={styles.subcategoryTitle}>{subcategory.name}</Text>
+              <Text style={styles.subcategoryTitle}>
+                {subcategory.name || "Unknown Category"}
+              </Text>
               <View style={styles.arrowContainer}>
                 <Ionicons name="arrow-forward" size={20} color="#fff" />
               </View>
@@ -374,19 +388,19 @@ export default function BusinessListScreen({ route, navigation }) {
 
   return (
     <LinearGradient
-      colors={['#1A1A1A', '#2D2D2D']}
+      colors={["#1A1A1A", "#2D2D2D"]}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
       <SafeAreaView style={styles.container}>
-        <Animated.View 
+        <Animated.View
           style={[
             styles.header,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
-            }
+            },
           ]}
         >
           <TouchableOpacity
@@ -407,9 +421,7 @@ export default function BusinessListScreen({ route, navigation }) {
           </Text>
         </Animated.View>
 
-        <View style={styles.content}>
-          {renderContent()}
-        </View>
+        <View style={styles.content}>{renderContent()}</View>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -420,8 +432,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     paddingTop: 20,
   },
@@ -430,14 +442,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   content: {
     flex: 1,
@@ -448,9 +460,9 @@ const styles = StyleSheet.create({
   subcategoryCard: {
     marginBottom: 16,
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -459,58 +471,58 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   subcategoryGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 20,
   },
   iconContainer: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
   subcategoryTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   arrowContainer: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   noResultsContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   noResultsText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   businessList: {
     padding: 16,
   },
   businessCard: {
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -519,8 +531,8 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   businessGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
   },
   businessInfo: {
@@ -528,44 +540,63 @@ const styles = StyleSheet.create({
   },
   businessName: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 4,
   },
   businessAddress: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: "rgba(255, 255, 255, 0.8)",
     marginBottom: 4,
   },
   businessDetailsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
   },
-  distanceText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '600',
+  businessHoursContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   businessHours: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: "rgba(255, 255, 255, 0.9)",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  distanceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  distanceText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.9)",
+    marginLeft: 4,
+    fontWeight: "500",
   },
   welcomeContainer: {
     marginBottom: 20,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   welcomeText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 17,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 24,
-    fontWeight: '500',
+    fontWeight: "500",
     letterSpacing: 0.3,
   },
-}); 
+});

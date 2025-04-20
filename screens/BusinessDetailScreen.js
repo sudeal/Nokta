@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,133 +13,303 @@ import {
   Platform,
   Alert,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 
 const { width } = Dimensions.get("window");
 const HEADER_HEIGHT = 300;
 const HEADER_MIN_HEIGHT = 100;
 
-const CustomDatePicker = ({ onSelect }) => {
+// Category-specific color schemes
+const categoryColors = {
+  'Health Care': {
+    primary: '#4B63DB',
+    secondary: '#A682FF',
+    gradient: ['#4B63DB', '#8B5CF6', '#A682FF'],
+    lightGradient: ['rgba(75, 99, 219, 0.9)', 'rgba(139, 92, 246, 0.9)'],
+    cardGradient: ['rgba(75, 99, 219, 0.15)', 'rgba(166, 130, 255, 0.1)'],
+    background: '#F0F3FF',
+    text: '#2D3748',
+    lightText: '#718096',
+    accent: '#00B5D8'
+  },
+  'Food & Beverages': {
+    primary: '#FF5722',
+    secondary: '#FF8A65',
+    gradient: ['#FF5722', '#FF7043', '#FF8A65'],
+    lightGradient: ['rgba(255, 87, 34, 0.9)', 'rgba(255, 138, 101, 0.9)'],
+    cardGradient: ['rgba(255, 87, 34, 0.15)', 'rgba(255, 138, 101, 0.1)'],
+    background: '#FBE9E7',
+    text: '#2D3748',
+    lightText: '#718096',
+    accent: '#FF9800'
+  },
+  'Selfcare': {
+    primary: '#9C27B0',
+    secondary: '#BA68C8',
+    gradient: ['#9C27B0', '#AB47BC', '#BA68C8'],
+    lightGradient: ['rgba(156, 39, 176, 0.9)', 'rgba(186, 104, 200, 0.9)'],
+    cardGradient: ['rgba(156, 39, 176, 0.15)', 'rgba(186, 104, 200, 0.1)'],
+    background: '#F3E5F5',
+    text: '#2D3748',
+    lightText: '#718096',
+    accent: '#E040FB'
+  }
+};
+
+// Get colors based on business category
+const getColorScheme = (category) => {
+  // Default to Food & Beverages if category is not found
+  const defaultScheme = categoryColors['Food & Beverages'];
+  
+  // Check for main categories
+  if (categoryColors[category]) {
+    return categoryColors[category];
+  }
+  
+  // Check for subcategories
+  const lowerCategory = category?.toLowerCase() || '';
+  if (lowerCategory.includes('health') || lowerCategory.includes('doctor') || 
+      lowerCategory.includes('dental') || lowerCategory.includes('medical') ||
+      lowerCategory.includes('saglik') || lowerCategory.includes('sağlık')) {
+    return categoryColors['Health Care'];
+  }
+  if (lowerCategory.includes('restaurant') || lowerCategory.includes('food') || 
+      lowerCategory.includes('cafe') || lowerCategory.includes('bar')) {
+    return categoryColors['Food & Beverages'];
+  }
+  if (lowerCategory.includes('hair') || lowerCategory.includes('beauty') || 
+      lowerCategory.includes('salon') || lowerCategory.includes('spa')) {
+    return categoryColors['Selfcare'];
+  }
+  
+  return defaultScheme;
+};
+
+// Helper function to format decimal hours to HH:MM format
+const formatHourToTime = (decimalHour) => {
+  if (decimalHour === undefined || decimalHour === null) return '';
+  
+  const hours = Math.floor(decimalHour);
+  const minutes = Math.round((decimalHour - hours) * 60);
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+};
+
+// Helper function to calculate distance between two coordinates
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+  
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+  
+  return distance;
+};
+
+const CustomDatePicker = ({ isVisible, onClose, onSelect, colorScheme }) => {
   const [selectedDay, setSelectedDay] = useState(new Date().getDate());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear] = useState(new Date().getFullYear());
-  const [selectedHour, setSelectedHour] = useState(12);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedHour, setSelectedHour] = useState(9);
   const [selectedMinute, setSelectedMinute] = useState(0);
 
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    { name: 'January', number: 1 },
+    { name: 'February', number: 2 },
+    { name: 'March', number: 3 },
+    { name: 'April', number: 4 },
+    { name: 'May', number: 5 },
+    { name: 'June', number: 6 },
+    { name: 'July', number: 7 },
+    { name: 'August', number: 8 },
+    { name: 'September', number: 9 },
+    { name: 'October', number: 10 },
+    { name: 'November', number: 11 },
+    { name: 'December', number: 12 }
+  ];
+
+  const getDaysInMonth = (month, year) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const [days, setDays] = useState([]);
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const minutes = Array.from({ length: 12 }, (_, i) => i * 5);
 
+  useEffect(() => {
+    const daysInMonth = getDaysInMonth(selectedMonth, selectedYear);
+    const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    setDays(daysArray);
+
+    if (selectedDay > daysInMonth) {
+      setSelectedDay(daysInMonth);
+    }
+  }, [selectedMonth, selectedYear]);
+
+  const isDateDisabled = (day) => {
+    const currentDate = new Date();
+    const selectedDate = new Date(selectedYear, selectedMonth, day);
+    return selectedDate < new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+  };
+
   const handleConfirm = () => {
-    const date = new Date(selectedYear, selectedMonth, selectedDay, selectedHour, selectedMinute);
-    onSelect(date);
+    const selectedDate = new Date(selectedYear, selectedMonth, selectedDay, selectedHour, selectedMinute);
+    onSelect(selectedDate);
+    onClose();
+  };
+
+  const formatDayLabel = (day) => {
+    const date = new Date(selectedYear, selectedMonth, day);
+    return date.toLocaleDateString('en-US', { weekday: 'short' });
   };
 
   return (
-    <View style={styles.pickerContainer}>
-      <Text style={styles.pickerTitle}>Select Date and Time</Text>
-      
-      <View style={styles.dateSection}>
-        <Text style={styles.sectionTitle}>Date</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateScroll}>
-          {days.map(day => (
-            <TouchableOpacity
-              key={day}
-              style={[
-                styles.dateItem,
-                selectedDay === day && styles.selectedDateItem
-              ]}
-              onPress={() => setSelectedDay(day)}
-            >
-              <Text style={[
-                styles.dateText,
-                selectedDay === day && styles.selectedDateText
-              ]}>
-                {day}
-              </Text>
+    <Modal visible={isVisible} animationType="slide" transparent>
+      <View style={styles.modalContainer}>
+        <View style={[styles.pickerContainer, { backgroundColor: colorScheme.background }]}>
+          <View style={styles.headerRow}>
+            <Text style={[styles.pickerTitle, { color: colorScheme.primary }]}>Select Date and Time</Text>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <MaterialIcons name="close" size={24} color={colorScheme.primary} />
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
-          {months.map((month, index) => (
-            <TouchableOpacity
-              key={month}
-              style={[
-                styles.monthItem,
-                selectedMonth === index && styles.selectedMonthItem
-              ]}
-              onPress={() => setSelectedMonth(index)}
+          <View style={styles.dateSection}>
+            <Text style={[styles.sectionTitle, { color: colorScheme.primary }]}>Month</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
+              {months.map((month, index) => (
+                <TouchableOpacity
+                  key={month.name}
+                  style={[
+                    styles.monthOption,
+                    selectedMonth === index && { backgroundColor: colorScheme.primary }
+                  ]}
+                  onPress={() => setSelectedMonth(index)}
+                >
+                  <Text style={[
+                    styles.monthText,
+                    selectedMonth === index && styles.selectedOptionText
+                  ]}>
+                    {month.name.substring(0, 3)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.sectionTitle, { marginTop: 20, color: colorScheme.primary }]}>Date</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayScroll}>
+              {days.map((day) => (
+                <TouchableOpacity
+                  key={day}
+                  style={[
+                    styles.dayOption,
+                    selectedDay === day && { backgroundColor: colorScheme.primary },
+                    isDateDisabled(day) && styles.disabledOption,
+                  ]}
+                  onPress={() => !isDateDisabled(day) && setSelectedDay(day)}
+                  disabled={isDateDisabled(day)}
+                >
+                  <Text style={[
+                    styles.dayLabel,
+                    selectedDay === day && styles.selectedOptionText,
+                    isDateDisabled(day) && styles.disabledText,
+                  ]}>
+                    {formatDayLabel(day)}
+                  </Text>
+                  <Text style={[
+                    styles.dayNumber,
+                    selectedDay === day && styles.selectedOptionText,
+                    isDateDisabled(day) && styles.disabledText,
+                  ]}>
+                    {day}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.timeSection}>
+            <Text style={[styles.sectionTitle, { color: colorScheme.primary }]}>Time</Text>
+            <View style={styles.timePickerContainer}>
+              <View style={styles.timeColumn}>
+                <Text style={[styles.timeLabel, { color: colorScheme.primary }]}>Hour</Text>
+                <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+                  {hours.map((hour) => (
+                    <TouchableOpacity
+                      key={hour}
+                      style={[
+                        styles.timeOption,
+                        selectedHour === hour && { backgroundColor: colorScheme.primary }
+                      ]}
+                      onPress={() => setSelectedHour(hour)}
+                    >
+                      <Text style={[
+                        styles.timeText,
+                        selectedHour === hour && styles.selectedOptionText
+                      ]}>
+                        {hour.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <Text style={[styles.timeSeparator, { color: colorScheme.primary }]}>:</Text>
+
+              <View style={styles.timeColumn}>
+                <Text style={[styles.timeLabel, { color: colorScheme.primary }]}>Minute</Text>
+                <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+                  {minutes.map((minute) => (
+                    <TouchableOpacity
+                      key={minute}
+                      style={[
+                        styles.timeOption,
+                        selectedMinute === minute && { backgroundColor: colorScheme.primary }
+                      ]}
+                      onPress={() => setSelectedMinute(minute)}
+                    >
+                      <Text style={[
+                        styles.timeText,
+                        selectedMinute === minute && styles.selectedOptionText
+                      ]}>
+                        {minute.toString().padStart(2, '0')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
+            <LinearGradient
+              colors={colorScheme.gradient}
+              style={styles.gradientButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
             >
-              <Text style={[
-                styles.monthText,
-                selectedMonth === index && styles.selectedMonthText
-              ]}>
-                {month}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      <View style={styles.timeSection}>
-        <Text style={styles.sectionTitle}>Time</Text>
-        <View style={styles.timePickerContainer}>
-          <ScrollView style={styles.timeScroll}>
-            {hours.map(hour => (
-              <TouchableOpacity
-                key={hour}
-                style={[
-                  styles.timeItem,
-                  selectedHour === hour && styles.selectedTimeItem
-                ]}
-                onPress={() => setSelectedHour(hour)}
-              >
-                <Text style={[
-                  styles.timeText,
-                  selectedHour === hour && styles.selectedTimeText
-                ]}>
-                  {hour.toString().padStart(2, '0')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          <Text style={styles.timeSeparator}>:</Text>
-          <ScrollView style={styles.timeScroll}>
-            {minutes.map(minute => (
-              <TouchableOpacity
-                key={minute}
-                style={[
-                  styles.timeItem,
-                  selectedMinute === minute && styles.selectedTimeItem
-                ]}
-                onPress={() => setSelectedMinute(minute)}
-              >
-                <Text style={[
-                  styles.timeText,
-                  selectedMinute === minute && styles.selectedTimeText
-                ]}>
-                  {minute.toString().padStart(2, '0')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+              <Text style={styles.confirmButtonText}>Confirm Appointment</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </View>
-
-      <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-        <Text style={styles.confirmButtonText}>Confirm</Text>
-      </TouchableOpacity>
-    </View>
+    </Modal>
   );
 };
 
 export default function BusinessDetailScreen({ route, navigation }) {
   const { business } = route.params;
+  const colorScheme = getColorScheme(business?.category);
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = scrollY.interpolate({
     inputRange: [0, HEADER_HEIGHT],
@@ -160,32 +330,77 @@ export default function BusinessDetailScreen({ route, navigation }) {
   });
 
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
+  const [userId, setUserId] = useState('user123'); // Temporary static userID
+  const [userLocation, setUserLocation] = useState(null);
+  const [distance, setDistance] = useState(null);
+
+  // Remove AsyncStorage related code and simplify the check
+  useEffect(() => {
+    if (!userId) {
+      Alert.alert(
+        "Error",
+        "Please login to book an appointment",
+        [
+          { 
+            text: "OK",
+            onPress: () => navigation.navigate('Login')
+          }
+        ]
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    if (business?.latitude && business?.longitude) {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const userLat = position.coords.latitude;
+            const userLon = position.coords.longitude;
+            setUserLocation({ latitude: userLat, longitude: userLon });
+            
+            const dist = calculateDistance(
+              userLat,
+              userLon,
+              business.latitude,
+              business.longitude
+            );
+            setDistance(dist);
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+          }
+        );
+      }
+    }
+  }, [business]);
 
   const getBusinessTypeIcon = (type) => {
     if (!type) return "business"; // Default icon if type is undefined
     
-    switch (type.toLowerCase()) {
+    const businessType = type.toLowerCase();
+    switch (businessType) {
       case "restaurant":
       case "food & beverage":
         return "restaurant";
       case "health care":
       case "doctor":
       case "medical":
-        return "medical";
+        return "local-hospital";
       case "dentist":
-        return "medical";
+        return "local-hospital";
       case "vet":
       case "veterinary":
         return "paw";
       case "barber":
       case "male hair salon":
-        return "cut";
+        return "content-cut";
       case "hair salon":
       case "female hair salon":
-        return "cut";
+        return "content-cut";
       case "nail salon":
       case "nail studio":
         return "hand-left";
@@ -210,11 +425,67 @@ export default function BusinessDetailScreen({ route, navigation }) {
     }
   };
 
-  const handleDateTimeSelect = (dateTime) => {
+  const createAppointment = async (dateTime) => {
+    if (!userId) {
+      Alert.alert(
+        "Error",
+        "Please login to book an appointment",
+        [
+          { 
+            text: "OK",
+            onPress: () => navigation.navigate('Login')
+          }
+        ]
+      );
+      return;
+    }
+
+    try {
+      const appointmentData = {
+        userID: parseInt(userId),
+        businessID: business.businessID,
+        appointmentDateTime: dateTime.toISOString(),
+        note: "no note attached",
+        status: "Pending"
+      };
+
+      const response = await fetch('https://nokta-appservice.azurewebsites.net/api/Appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'text/plain'
+        },
+        body: JSON.stringify(appointmentData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Appointment creation failed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+      throw error;
+    }
+  };
+
+  const handleDateTimeSelect = async (dateTime) => {
     setShowDatePicker(false);
+    
+    // Seçilen saat iş yeri çalışma saatleri içinde mi kontrol et
+    const hour = dateTime.getHours();
+    if (hour < business.openingHour || hour > business.closingHour) {
+      Alert.alert(
+        "Invalid Time",
+        "Please select a time within business hours.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     Alert.alert(
       "Appointment Confirmation",
-      `Would you like to book an appointment at ${business.name} for ${dateTime.toLocaleString()}?`,
+      `Would you like to book an appointment at ${business?.name || ''} for ${dateTime.toLocaleString()}?`,
       [
         {
           text: "Cancel",
@@ -222,13 +493,21 @@ export default function BusinessDetailScreen({ route, navigation }) {
         },
         {
           text: "Confirm",
-          onPress: () => {
-            // Burada randevu API'sine istek atılacak
-            Alert.alert(
-              "Success!",
-              "Your appointment has been booked successfully.",
-              [{ text: "OK" }]
-            );
+          onPress: async () => {
+            try {
+              await createAppointment(dateTime);
+              Alert.alert(
+                "Success!",
+                "Your appointment has been booked successfully.",
+                [{ text: "OK" }]
+              );
+            } catch (error) {
+              Alert.alert(
+                "Error",
+                "Failed to book appointment. Please try again.",
+                [{ text: "OK" }]
+              );
+            }
           }
         }
       ]
@@ -243,9 +522,23 @@ export default function BusinessDetailScreen({ route, navigation }) {
     }
   };
 
+  const getFormattedWorkingHours = () => {
+    if (business?.openingHour == null || business?.closingHour == null) {
+      return 'Working hours not available';
+    }
+    return `${formatHourToTime(business.openingHour)} - ${formatHourToTime(business.closingHour)}`;
+  };
+
+  const formatDistance = (distance) => {
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)}m`;
+    }
+    return `${distance.toFixed(1)}km`;
+  };
+
   return (
     <LinearGradient
-      colors={['#1A1A1A', '#2D2D2D']}
+      colors={colorScheme.gradient}
       style={styles.container}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
@@ -253,7 +546,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: 'rgba(255, 255, 255, 0.15)' }]}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -263,37 +556,56 @@ export default function BusinessDetailScreen({ route, navigation }) {
           </Text>
         </View>
 
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <MotiView
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: "timing", duration: 500 }}
           >
             <LinearGradient
-              colors={['#FF6B6B', '#FF8E8E']}
-              style={styles.mainInfoCard}
+              colors={colorScheme.lightGradient}
+              style={[styles.mainInfoCard, { borderRadius: 20 }]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
               <View style={styles.categoryInfo}>
                 {business?.category && (
-                  <View style={styles.categoryContainer}>
+                  <View style={[styles.categoryContainer, { 
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.3)'
+                  }]}>
                     <Ionicons 
                       name={getBusinessTypeIcon(business.category)} 
                       size={24} 
                       color="#fff" 
                     />
-                    <Text style={styles.categoryText}>{business.category}</Text>
+                    <Text style={[styles.categoryText, { fontWeight: '600' }]}>
+                      {business.category}
+                    </Text>
                   </View>
                 )}
                 {business?.openingHour != null && business?.closingHour != null && (
-                  <View style={styles.hoursContainer}>
+                  <View style={[styles.hoursContainer, { 
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.3)'
+                  }]}>
                     <Ionicons name="time-outline" size={20} color="#fff" />
-                    <Text style={styles.hoursText}>
-                      {business.openingHour}:00 - {business.closingHour}:00
+                    <Text style={[styles.hoursText, { fontWeight: '600' }]}>
+                      {getFormattedWorkingHours()}
+                    </Text>
+                  </View>
+                )}
+                {distance !== null && (
+                  <View style={[styles.distanceContainer, { 
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.3)'
+                  }]}>
+                    <Ionicons name="location-outline" size={20} color="#fff" />
+                    <Text style={[styles.distanceText, { fontWeight: '600' }]}>
+                      {formatDistance(distance)}
                     </Text>
                   </View>
                 )}
@@ -307,12 +619,16 @@ export default function BusinessDetailScreen({ route, navigation }) {
             transition={{ type: "timing", duration: 500, delay: 200 }}
             style={styles.section}
           >
-            <Text style={styles.sectionTitle}>About</Text>
+            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>About</Text>
             <LinearGradient
-              colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-              style={styles.sectionCard}
+              colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.1)']}
+              style={[styles.sectionCard, { 
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: 20
+              }]}
             >
-              <Text style={styles.description}>
+              <Text style={[styles.description, { lineHeight: 24 }]}>
                 {business?.description || "No description available"}
               </Text>
             </LinearGradient>
@@ -324,18 +640,19 @@ export default function BusinessDetailScreen({ route, navigation }) {
             transition={{ type: "timing", duration: 500, delay: 400 }}
             style={styles.section}
           >
-            <Text style={styles.sectionTitle}>Location</Text>
-            <TouchableOpacity 
-              onPress={handleMap}
-              disabled={!business?.address}
-            >
+            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>Location</Text>
+            <TouchableOpacity onPress={handleMap} disabled={!business?.address}>
               <LinearGradient
-                colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                style={styles.sectionCard}
+                colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.1)']}
+                style={[styles.sectionCard, {
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: 20
+                }]}
               >
                 <View style={styles.infoRow}>
-                  <Ionicons name="location" size={24} color="#FF6B6B" />
-                  <Text style={styles.infoText}>
+                  <Ionicons name="location" size={24} color="#fff" />
+                  <Text style={[styles.infoText, { marginLeft: 12 }]}>
                     {business?.address || "Address not available"}
                   </Text>
                 </View>
@@ -349,18 +666,19 @@ export default function BusinessDetailScreen({ route, navigation }) {
             transition={{ type: "timing", duration: 500, delay: 600 }}
             style={styles.section}
           >
-            <Text style={styles.sectionTitle}>Contact</Text>
-            <TouchableOpacity 
-              onPress={handleCall}
-              disabled={!business?.contactNumber}
-            >
+            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>Contact</Text>
+            <TouchableOpacity onPress={handleCall} disabled={!business?.contactNumber}>
               <LinearGradient
-                colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                style={styles.sectionCard}
+                colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.1)']}
+                style={[styles.sectionCard, {
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: 20
+                }]}
               >
                 <View style={styles.infoRow}>
-                  <Ionicons name="call" size={24} color="#FF6B6B" />
-                  <Text style={styles.infoText}>
+                  <Ionicons name="call" size={24} color="#fff" />
+                  <Text style={[styles.infoText, { marginLeft: 12 }]}>
                     {business?.contactNumber || "Phone number not available"}
                   </Text>
                 </View>
@@ -369,38 +687,32 @@ export default function BusinessDetailScreen({ route, navigation }) {
           </MotiView>
 
           <TouchableOpacity
-            style={styles.appointmentButton}
+            style={[styles.appointmentButton, { marginBottom: 30 }]}
             onPress={() => setShowDatePicker(true)}
           >
             <LinearGradient
-              colors={['#FF6B6B', '#FF8E8E']}
-              style={styles.gradientButton}
+              colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.2)']}
+              style={[styles.gradientButton, {
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                borderRadius: 16
+              }]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <Text style={styles.buttonText}>Book Appointment</Text>
+              <Text style={[styles.buttonText, { fontSize: 18, fontWeight: '600' }]}>
+                Book Appointment
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
 
-        <Modal
-          visible={showDatePicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowDatePicker(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <CustomDatePicker onSelect={handleDateTimeSelect} />
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowDatePicker(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+        <CustomDatePicker
+          isVisible={showDatePicker}
+          onClose={() => setShowDatePicker(false)}
+          onSelect={handleDateTimeSelect}
+          colorScheme={colorScheme}
+        />
       </SafeAreaView>
     </LinearGradient>
   );
@@ -423,13 +735,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
     flex: 1,
@@ -439,9 +750,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   mainInfoCard: {
-    borderRadius: 16,
     padding: 20,
     marginBottom: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   categoryInfo: {
     gap: 12,
@@ -449,22 +767,19 @@ const styles = StyleSheet.create({
   categoryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 10,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 12,
   },
   categoryText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
     marginLeft: 10,
   },
   hoursContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 10,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 12,
   },
   hoursText: {
     color: '#fff',
@@ -475,21 +790,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
     marginBottom: 12,
     marginLeft: 4,
   },
   sectionCard: {
-    borderRadius: 16,
     padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'transparent',
   },
   description: {
     color: '#fff',
     fontSize: 16,
-    lineHeight: 24,
   },
   infoRow: {
     flexDirection: 'row',
@@ -498,12 +808,10 @@ const styles = StyleSheet.create({
   infoText: {
     color: '#fff',
     fontSize: 16,
-    marginLeft: 12,
     flex: 1,
   },
   appointmentButton: {
-    marginVertical: 20,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     elevation: 5,
     shadowColor: '#000',
@@ -520,137 +828,159 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-  },
   pickerContainer: {
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
     padding: 20,
+    maxHeight: '90%',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   pickerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
     color: '#333',
+  },
+  closeButton: {
+    padding: 8,
   },
   dateSection: {
     marginBottom: 20,
   },
-  dateScroll: {
-    marginBottom: 10,
-  },
-  dateItem: {
-    width: 45,
-    height: 45,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-    borderRadius: 22.5,
-    backgroundColor: '#f0f0f0',
-  },
-  selectedDateItem: {
-    backgroundColor: '#FF6B6B',
-  },
-  dateText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  selectedDateText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
   monthScroll: {
-    marginBottom: 10,
+    flexGrow: 0,
   },
-  monthItem: {
+  monthOption: {
     paddingHorizontal: 20,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingVertical: 10,
     marginRight: 10,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
+    minWidth: 80,
+    alignItems: 'center',
   },
-  selectedMonthItem: {
+  selectedMonthOption: {
     backgroundColor: '#FF6B6B',
   },
   monthText: {
     fontSize: 16,
+    color: '#666',
+    fontWeight: '500',
+  },
+  dayScroll: {
+    flexGrow: 0,
+  },
+  dayOption: {
+    width: 70,
+    paddingVertical: 12,
+    marginRight: 10,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+  },
+  selectedDayOption: {
+    backgroundColor: '#FF6B6B',
+  },
+  dayLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  dayNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#333',
   },
-  selectedMonthText: {
+  selectedOptionText: {
     color: '#fff',
-    fontWeight: 'bold',
+  },
+  disabledOption: {
+    backgroundColor: '#e0e0e0',
+    opacity: 0.7,
+  },
+  disabledText: {
+    color: '#999',
   },
   timeSection: {
-    marginBottom: 20,
+    marginTop: 20,
   },
   timePickerContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  timeColumn: {
+    alignItems: 'center',
+  },
+  timeLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
   },
   timeScroll: {
-    height: 120,
+    height: 160,
   },
-  timeItem: {
+  timeOption: {
+    width: 60,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 5,
+    marginVertical: 4,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
   },
-  selectedTimeItem: {
+  selectedTimeOption: {
     backgroundColor: '#FF6B6B',
-    borderRadius: 20,
   },
   timeText: {
     fontSize: 18,
     color: '#333',
   },
-  selectedTimeText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
   timeSeparator: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginHorizontal: 10,
-    color: '#333',
+    marginHorizontal: 15,
+    marginTop: 30,
+    color: '#666',
   },
   confirmButton: {
-    backgroundColor: '#FF6B6B',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
+    marginTop: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   confirmButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  cancelButton: {
-    marginTop: 10,
-    padding: 15,
-    borderRadius: 10,
+  distanceContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ccc',
+    padding: 12,
+    borderRadius: 12,
   },
-  cancelButtonText: {
+  distanceText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    marginLeft: 10,
   },
 }); 

@@ -275,4 +275,11 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 2,
   },
+  disabledDateItem: {
+    backgroundColor: '#e0e0e0',
+    opacity: 0.5,
+  },
+  disabledDateText: {
+    color: '#999',
+  },
 });
