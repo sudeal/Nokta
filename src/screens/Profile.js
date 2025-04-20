@@ -9,7 +9,23 @@ const Profile = () => {
     const fetchBusinessData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('https://nokta-appservice.azurewebsites.net/api/Business/87');
+        
+        // Get user data from localStorage
+        const storedUserData = localStorage.getItem("userData");
+        if (!storedUserData) {
+          throw new Error("No user data found. Please log in again.");
+        }
+        
+        // Parse the stored data
+        const parsedUserData = JSON.parse(storedUserData);
+        const businessId = parsedUserData.businessID || parsedUserData.id;
+        
+        if (!businessId) {
+          throw new Error("Business ID not found in user data.");
+        }
+        
+        // Fetch the business data using the ID from localStorage
+        const response = await fetch(`https://nokta-appservice.azurewebsites.net/api/Business/${businessId}`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch business data: ${response.status}`);
@@ -47,6 +63,172 @@ const Profile = () => {
     });
   };
 
+  // Add a component for when user is not logged in
+  const NotLoggedInMessage = () => (
+    <div style={{ 
+      backgroundColor: 'rgba(28, 32, 55, 0.7)', 
+      borderRadius: '8px', 
+      padding: '30px',
+      margin: '20px auto',
+      maxWidth: '600px',
+      textAlign: 'center',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+    }}>
+      <div style={{
+        fontSize: '50px',
+        marginBottom: '20px'
+      }}>
+        👤
+      </div>
+      <h2 style={{ 
+        color: 'white', 
+        fontSize: '24px', 
+        marginBottom: '15px' 
+      }}>
+        Please Log In to View Your Profile
+      </h2>
+      <p style={{ 
+        color: 'rgba(255, 255, 255, 0.7)',
+        marginBottom: '25px',
+        lineHeight: '1.5'
+      }}>
+        You need to be logged in to access your business profile information.
+      </p>
+      <button style={{
+        backgroundColor: '#3f51b5',
+        color: 'white',
+        border: 'none',
+        padding: '12px 24px',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        fontSize: '16px'
+      }} onClick={() => window.location.href = '/login'}>
+        Go to Login
+      </button>
+    </div>
+  );
+
+  // Error types with corresponding UI
+  const getErrorContent = (errorMessage) => {
+    if (errorMessage.includes("No user data found") || errorMessage.includes("Please log in")) {
+      return <NotLoggedInMessage />;
+    }
+    
+    if (errorMessage.includes("Business ID not found")) {
+      return (
+        <div style={{ 
+          backgroundColor: 'rgba(28, 32, 55, 0.7)', 
+          borderRadius: '8px', 
+          padding: '20px',
+          margin: '20px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+        }}>
+          <h1 style={{ 
+            color: 'white', 
+            fontSize: '28px', 
+            fontWeight: 'bold',
+            marginBottom: '20px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+            paddingBottom: '16px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <span style={{ 
+              fontSize: '24px', 
+              marginRight: '10px',
+              backgroundColor: 'rgba(244, 67, 54, 0.25)',
+              padding: '6px',
+              borderRadius: '8px',
+              display: 'inline-flex'
+            }}>
+              ⚠️
+            </span>
+            Profile Data Issue
+          </h1>
+          <div style={{
+            backgroundColor: 'rgba(244, 67, 54, 0.1)', 
+            padding: '15px',
+            borderRadius: '8px',
+            color: 'white'
+          }}>
+            <p>Your account doesn't seem to be properly set up as a business account. Please contact support for assistance.</p>
+          </div>
+          <button style={{
+            backgroundColor: '#3f51b5',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            marginTop: '20px'
+          }} onClick={() => window.location.reload()}>
+            Try Again
+          </button>
+        </div>
+      );
+    }
+    
+    // Default error UI
+    return (
+      <div style={{ 
+        backgroundColor: 'rgba(28, 32, 55, 0.7)', 
+        borderRadius: '8px', 
+        padding: '20px',
+        margin: '20px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+      }}>
+        <h1 style={{ 
+          color: 'white', 
+          fontSize: '28px', 
+          fontWeight: 'bold',
+          marginBottom: '20px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
+          paddingBottom: '16px',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <span style={{ 
+            fontSize: '24px', 
+            marginRight: '10px',
+            backgroundColor: 'rgba(244, 67, 54, 0.25)',
+            padding: '6px',
+            borderRadius: '8px',
+            display: 'inline-flex'
+          }}>
+            ⚠️
+          </span>
+          Error Loading Profile
+        </h1>
+        <div style={{
+          backgroundColor: 'rgba(244, 67, 54, 0.1)', 
+          padding: '15px',
+          borderRadius: '8px',
+          color: 'white'
+        }}>
+          {errorMessage}
+        </div>
+        <button style={{
+          backgroundColor: '#3f51b5',
+          color: 'white',
+          border: 'none',
+          padding: '10px 20px',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+          marginTop: '20px'
+        }} onClick={() => window.location.reload()}>
+          Try Again
+        </button>
+      </div>
+    );
+  };
+
+  if (error) {
+    return getErrorContent(error);
+  }
+
   if (loading) {
     return (
       <div style={{ 
@@ -80,51 +262,6 @@ const Profile = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div style={{ 
-        backgroundColor: 'rgba(28, 32, 55, 0.7)', 
-        borderRadius: '8px', 
-        padding: '20px',
-        margin: '20px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-      }}>
-        <h1 style={{ 
-          color: 'white', 
-          fontSize: '28px', 
-          fontWeight: 'bold',
-          marginBottom: '20px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
-          paddingBottom: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-          letterSpacing: '0.5px'
-        }}>
-          <span style={{ 
-            fontSize: '24px', 
-            marginRight: '10px',
-            backgroundColor: 'rgba(244, 67, 54, 0.25)',
-            padding: '6px',
-            borderRadius: '8px',
-            display: 'inline-flex'
-          }}>
-            ⚠️
-          </span>
-          Error Loading Profile
-        </h1>
-        <div style={{
-          backgroundColor: 'rgba(244, 67, 54, 0.1)', 
-          padding: '15px',
-          borderRadius: '8px',
-          color: 'white'
-        }}>
-          {error}
-        </div>
-      </div>
-    );
-  }
-
   if (!userData) return null;
 
   // Determine active features
@@ -145,6 +282,27 @@ const Profile = () => {
       width: '95%',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
     }}>
+      {/* Login status indicator */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        marginBottom: '15px'
+      }}>
+        <div style={{
+          backgroundColor: 'rgba(76, 175, 80, 0.2)',
+          color: '#66bb6a',
+          padding: '8px 12px',
+          borderRadius: '4px',
+          fontSize: '13px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <span style={{ fontSize: '10px' }}>●</span>
+          Logged in as {userData.name || userData.ownerName}
+        </div>
+      </div>
+      
       <h1 style={{ 
         color: 'white', 
         fontSize: '32px', 

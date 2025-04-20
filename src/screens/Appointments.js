@@ -930,9 +930,18 @@ const Appointments = () => {
     // Complete/Done button - only for Today tab, not for All tab
     if (status !== 'Completed' && status === 'Accepted' && !isOnAllTab) {
       buttonsToShow.push({
-        text: isLoading ? <span>⏳</span> : isOnTodayTab ? '✓ Done' : '✓ Complete',
+        text: isLoading ? <span>⏳</span> : isOnTodayTab ? '✓ Complete & Remove' : '✓ Complete',
         style: styles.completeButton,
-        onClick: () => updateAppointmentStatus(appointmentID, 'Completed'),
+        onClick: () => {
+          if (isOnTodayTab) {
+            // For Today tab - Done button deletes the appointment
+            setAppointmentToDelete({ id: appointmentID, appointment });
+            setShowConfirmDelete(true);
+          } else {
+            // For other tabs - Complete button marks it as completed
+            updateAppointmentStatus(appointmentID, 'Completed');
+          }
+        },
         key: 'complete'
       });
     }
@@ -1163,15 +1172,20 @@ const Appointments = () => {
 
   // Get and filter appointments by different criteria - updated to exclude pending appointments from other tabs
   const todayAppointments = appointments.filter(app => isToday(app.appointmentDateTime) && app.status !== 'Pending');
-  const pendingAppointments = appointments.filter(app => app.status === 'Pending');
+  const pendingAppointments = appointments.filter(app => 
+    app.status === 'Pending' && !isExpired(app.appointmentDateTime)
+  );
   const allNonPendingAppointments = appointments.filter(app => app.status !== 'Pending');
   const sortedAppointments = sortAppointmentsByDate(allNonPendingAppointments);
-  const expiredAppointments = appointments.filter(app => isExpired(app.appointmentDateTime) && app.status !== 'Completed');
+  const expiredAppointments = appointments.filter(app => 
+    isExpired(app.appointmentDateTime) && 
+    app.status !== 'Completed'
+  );
   
   // Tabs data for cleaner rendering
   const tabs = [
     { id: 'today', label: "Today's Appointments", count: todayAppointments.length, icon: '📅' },
-    { id: 'pending', label: 'New Appointments (Accept or Decline)', count: pendingAppointments.length, icon: '⌛' },
+    { id: 'pending', label: 'New Appointments', count: pendingAppointments.length, icon: '⌛' },
     { id: 'expired', label: 'Expired Appointments', count: expiredAppointments.length, icon: '⏱️' },
     { id: 'all', label: 'All Appointments', count: sortedAppointments.length, icon: '📋' }
   ];
@@ -1255,7 +1269,15 @@ const Appointments = () => {
       }
       
       const data = await response.json();
-      setDateAppointments(data);
+      
+      // Filter out expired appointments
+      const now = new Date();
+      const filteredData = data.filter(app => {
+        const appDateTime = new Date(app.appointmentDateTime);
+        return appDateTime >= now;
+      });
+      
+      setDateAppointments(filteredData);
     } catch (error) {
       console.error("Error fetching appointments by date:", error);
     } finally {
@@ -1311,13 +1333,17 @@ const Appointments = () => {
       
       const data = await response.json();
       
-      // Filter to only include the current month
+      // Get current time to filter out expired appointments
+      const now = new Date().getTime();
+      
+      // Filter to only include non-expired appointments in the current month
       const firstDay = new Date(year, month, 1).getTime();
       const lastDay = new Date(year, month + 1, 0, 23, 59, 59).getTime();
       
       const filteredData = data.filter(app => {
         const appDate = new Date(app.appointmentDateTime).getTime();
-        return appDate >= firstDay && appDate <= lastDay;
+        // Keep appointments that are in the current month AND not expired
+        return appDate >= firstDay && appDate <= lastDay && appDate >= now;
       });
       
       setMonthAppointments(filteredData);
@@ -1328,14 +1354,25 @@ const Appointments = () => {
     }
   };
   
-  // Check if a date has appointments
+  // Check if a date has non-expired appointments
   const hasAppointmentsOnDate = (date) => {
     if (!monthAppointments || monthAppointments.length === 0) return false;
     
-    const formattedDate = formatDateForApi(date);
+    // Get start and end timestamps for the requested date
+    const dateStart = new Date(date);
+    dateStart.setHours(0, 0, 0, 0);
+    const dateEnd = new Date(date);
+    dateEnd.setHours(23, 59, 59, 999);
+    
+    // Get current time for checking if expired
+    const now = new Date();
+    
+    // Check for non-expired appointments on the requested date
     return monthAppointments.some(app => {
-      const appDate = formatDateForApi(new Date(app.appointmentDateTime));
-      return appDate === formattedDate;
+      const appDateTime = new Date(app.appointmentDateTime);
+      return appDateTime >= dateStart && 
+             appDateTime <= dateEnd && 
+             appDateTime >= now;
     });
   };
 
@@ -1487,6 +1524,246 @@ const Appointments = () => {
     return date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
   };
 
+  // Render action buttons for calendar appointments with consistent layout
+  const renderCalendarActionButtons = (appointment) => {
+    const { appointmentID, status } = appointment;
+    const isLoading = actionLoading === appointmentID;
+    
+    // If expired, show only remove button (should not happen as we filter these out)
+    if (isExpired(appointment.appointmentDateTime)) {
+      return (
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          height: '100%'
+        }}>
+          <button 
+            style={{ 
+              ...styles.actionButton, 
+              backgroundColor: 'rgba(97, 97, 97, 0.15)',
+              color: '#9e9e9e',
+              border: '1px solid rgba(97, 97, 97, 0.3)',
+              height: '100%'
+            }}
+            onClick={() => deleteAppointment(appointmentID)}
+            disabled={isLoading}
+          >
+            {isLoading ? <span>⏳</span> : '🗑️ Remove'}
+          </button>
+        </div>
+      );
+    }
+    
+    // For pending appointments: Show Accept and Reject buttons
+    if (status === 'Pending') {
+      return (
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          height: '100%',
+          gap: '8px'
+        }}>
+          <button 
+            style={{ 
+              ...styles.actionButton, 
+              ...styles.acceptButton,
+              flex: 0.5,
+              height: '50%'
+            }}
+            onClick={() => acceptAppointment(appointmentID)}
+            disabled={isLoading}
+          >
+            {isLoading ? <span>⏳</span> : '✓ Accept'}
+          </button>
+          <button 
+            style={{ 
+              ...styles.actionButton, 
+              ...styles.rejectButton,
+              flex: 0.5,
+              height: '50%'
+            }}
+            onClick={() => {
+              setAppointmentToReject({ id: appointmentID, appointment });
+              setShowConfirmReject(true);
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? <span>⏳</span> : '✕ Reject'}
+          </button>
+        </div>
+      );
+    }
+    
+    // For accepted appointments: Show Done button
+    if (status === 'Accepted') {
+      return (
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          height: '100%'
+        }}>
+          <button 
+            style={{ 
+              ...styles.actionButton, 
+              ...styles.completeButton,
+              height: '100%'
+            }}
+            onClick={() => {
+              // For calendar appointments, Done button always deletes
+              setAppointmentToDelete({ id: appointmentID, appointment });
+              setShowConfirmDelete(true);
+            }}
+            disabled={isLoading}
+          >
+            {isLoading ? <span>⏳</span> : '✓ Complete & Remove'}
+          </button>
+        </div>
+      );
+    }
+    
+    // For completed or other statuses: Show no buttons
+    return null;
+  };
+
+  // Custom card renderer for calendar appointments with consistent buttons
+  const renderCalendarAppointmentCard = (appointment) => {
+    // Get card style based on status
+    const cardStatusStyle = (() => {
+      switch(appointment.status) {
+        case 'Accepted': return styles.cardAccepted;
+        case 'Pending': return styles.cardPending;
+        case 'Rejected': return styles.cardRejected;
+        case 'Completed': return styles.cardCompleted;
+        default: return {};
+      }
+    })();
+
+    return (
+      <div 
+        key={appointment.appointmentID} 
+        style={{
+          ...styles.appointmentCard,
+          ...cardStatusStyle,
+          ':hover': {
+            transform: 'translateY(-3px)',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.2)'
+          }
+        }}
+      >
+        {/* Column 1: ID and Status */}
+        <div style={styles.idColumn}>
+          <div style={styles.appointmentID}>
+            <span style={styles.idLabel}>ID</span>
+            <span style={styles.idNumber}>#{appointment.appointmentID}</span>
+          </div>
+          <div style={getStatusStyle(appointment.status)}>
+            <span style={{ marginRight: '5px' }}>{getStatusIcon(appointment.status)}</span>
+            {appointment.status}
+          </div>
+          {appointment.status === 'Pending' && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: '12px',
+              color: colors.warning,
+              marginTop: '8px',
+              padding: '4px 8px',
+              backgroundColor: 'rgba(255, 152, 0, 0.1)',
+              borderRadius: '4px'
+            }}>
+              <span style={{ marginRight: '4px' }}>⚠️</span> Awaiting
+            </div>
+          )}
+        </div>
+        
+        <div style={styles.columnDivider} />
+        
+        {/* Column 2: Date and Time */}
+        <div style={styles.dateColumn}>
+          <div style={styles.dateTimeItem}>
+            <span style={styles.dateIcon}>📅</span>
+            <span>{formatDate(appointment.appointmentDateTime)}</span>
+            </div>
+          <div style={styles.dateTimeItem}>
+            <span style={styles.dateIcon}>⏰</span>
+            <span>{formatTime(appointment.appointmentDateTime)}</span>
+          </div>
+        </div>
+        
+        <div style={styles.columnDivider} />
+        
+        {/* Column 3: Customer Information */}
+        <div style={styles.customerColumn}>
+          <div style={styles.customerDetails}>
+            <div style={styles.customerIdSection}>
+              <span style={{
+                ...styles.infoIcon, 
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                padding: '4px', 
+                borderRadius: '50%', 
+                marginRight: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '24px',
+                height: '24px'
+              }}>👤</span>
+              <div>
+                <span style={{ fontWeight: 'bold', display: 'block', marginBottom: '3px' }}>Customer:</span>
+                <span style={{ 
+                  backgroundColor: 'rgba(63, 81, 181, 0.15)', 
+                  padding: '2px 6px', 
+                  borderRadius: '4px', 
+                  display: 'inline-block'
+                }}>
+                  #{appointment.userID}
+                </span>
+              </div>
+            </div>
+            
+            {appointment.note && (
+              <div style={styles.noteSection}>
+                <span style={{
+                  ...styles.infoIcon, 
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                  padding: '4px', 
+                  borderRadius: '50%', 
+                  marginRight: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '24px',
+                  height: '24px',
+                  verticalAlign: 'middle'
+                }}>📝</span>
+                <span style={{ fontWeight: 'bold', display: 'inline-block', marginBottom: '3px', verticalAlign: 'middle' }}>Note:</span>
+                <div style={styles.noteText}>
+                  {appointment.note}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div style={{ 
+            fontSize: '11px', 
+            color: colors.textLight, 
+            marginTop: '8px', 
+            textAlign: 'right' 
+          }}>
+            <span style={{ fontWeight: 'bold' }}>Created:</span> {formatDateTime(appointment.createdAt)}
+          </div>
+        </div>
+        
+        <div style={styles.columnDivider} />
+        
+        {/* Column 4: Action Buttons - using calendar-specific buttons */}
+        <div style={styles.actionColumn}>
+          {renderCalendarActionButtons(appointment)}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={styles.container}>
       {renderAnimationStyles()}
@@ -1545,11 +1822,14 @@ const Appointments = () => {
               </div>
             ) : (
               <div>
-                {dateAppointments.map(app => 
-                  <div key={app.appointmentID}>
-                    {renderAppointmentCard(app)}
-                  </div>
-                )}
+                {dateAppointments
+                  .filter(app => !isExpired(app.appointmentDateTime)) // Extra filter to ensure no expired appointments
+                  .map(app => 
+                    <div key={app.appointmentID}>
+                      {renderCalendarAppointmentCard(app)}
+                    </div>
+                  )
+                }
               </div>
             )}
           </div>
@@ -1573,6 +1853,13 @@ const Appointments = () => {
               opacity: '0.8'
             }}>📆</span>
             No appointment found for {isToday(selectedDate) ? "today" : formatDateForDisplay(selectedDate)}
+            <div style={{ 
+              fontSize: '12px', 
+              marginTop: '8px', 
+              color: 'rgba(255, 255, 255, 0.5)' 
+            }}>
+              Note: Expired appointments are shown in the "Expired Appointments" tab
+            </div>
           </div>
         )}
       </div>
@@ -1643,8 +1930,17 @@ const Appointments = () => {
             {/* Pending Appointments Tab */}
             {activeTab === 'pending' && (
               <div>
-              {pendingAppointments.length === 0 ? (
-                  <div style={styles.emptySection}>No new appointments requiring approval</div>
+                {pendingAppointments.length === 0 ? (
+                  <div style={styles.emptySection}>
+                    No new appointments requiring approval
+                    <div style={{ 
+                      fontSize: '12px', 
+                      marginTop: '8px', 
+                      color: 'rgba(255, 255, 255, 0.5)' 
+                    }}>
+                      Note: Expired pending appointments are shown in the Expired tab
+                    </div>
+                  </div>
                 ) : (
                   pendingAppointments.map(app => 
                     <div key={app.appointmentID}>
@@ -1726,11 +2022,24 @@ const Appointments = () => {
         <div style={styles.modalOverlay} onClick={() => setShowConfirmDelete(false)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalIcon}>⚠️</div>
-            <h3 style={styles.modalTitle}>Cancel Appointment</h3>
+            <h3 style={styles.modalTitle}>
+              {appointmentToDelete.appointment && appointmentToDelete.appointment.status === 'Accepted' ? 
+                'Complete & Remove Appointment' : 'Cancel Appointment'}
+            </h3>
             <p style={styles.modalMessage}>
-              Are you sure you want to cancel appointment #{appointmentToDelete.id}?
-              <br />
-              This will delete the appointment and cannot be undone.
+              {appointmentToDelete.appointment && appointmentToDelete.appointment.status === 'Accepted' ? (
+                <>
+                  Are you sure you want to mark appointment #{appointmentToDelete.id} as completed and remove it?
+                  <br />
+                  This will delete the appointment from your list.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to cancel appointment #{appointmentToDelete.id}?
+                  <br />
+                  This will delete the appointment and cannot be undone.
+                </>
+              )}
             </p>
             <div style={styles.modalButtons}>
               <button 
@@ -1747,7 +2056,8 @@ const Appointments = () => {
                   setAppointmentToDelete(null);
                 }}
               >
-                Delete
+                {appointmentToDelete.appointment && appointmentToDelete.appointment.status === 'Accepted' ? 
+                  'Complete & Remove' : 'Delete'}
               </button>
             </div>
           </div>
