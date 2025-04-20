@@ -427,59 +427,39 @@ export default function BusinessDetailScreen({ route, navigation }) {
     }
   };
 
-  const createAppointment = async (dateTime) => {
-    if (!userId) {
-      Alert.alert(
-        "Error",
-        "Please login to book an appointment",
-        [
-          { 
-            text: "OK",
-            onPress: () => navigation.navigate('Login')
-          }
-        ]
-      );
-      return;
-    }
-
-    try {
-      const appointmentData = {
-        userID: parseInt(userId),
-        businessID: business.businessID,
-        appointmentDateTime: dateTime.toISOString(),
-        note: "no note attached",
-        status: "Pending"
-      };
-
-      const response = await fetch('https://nokta-appservice.azurewebsites.net/api/Appointments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'accept': 'text/plain'
-        },
-        body: JSON.stringify(appointmentData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Appointment creation failed');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error creating appointment:', error);
-      throw error;
-    }
-  };
-
   const handleDateTimeSelect = async (dateTime) => {
     setShowDatePicker(false);
     
-    // Seçilen saat iş yeri çalışma saatleri içinde mi kontrol et
-    const hour = dateTime.getHours();
-    if (hour < business.openingHour || hour > business.closingHour) {
+    // Log selected time and business hours for debugging
+    console.log('Time Check:', {
+      selectedHour: dateTime.getHours(),
+      selectedMinutes: dateTime.getMinutes(),
+      businessOpeningHour: business.openingHour,
+      businessClosingHour: business.closingHour,
+      fullDateTime: dateTime.toISOString()
+    });
+
+    // Convert decimal hours to comparable format
+    const selectedTimeInDecimal = dateTime.getHours() + (dateTime.getMinutes() / 60);
+    const openingHour = parseFloat(business.openingHour);
+    const closingHour = parseFloat(business.closingHour);
+
+    console.log('Decimal Time Check:', {
+      selectedTimeInDecimal,
+      openingHour,
+      closingHour
+    });
+
+    if (selectedTimeInDecimal < openingHour || selectedTimeInDecimal > closingHour) {
+      const formatTime = (hour) => {
+        const hrs = Math.floor(hour);
+        const mins = Math.round((hour - hrs) * 60);
+        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      };
+
       Alert.alert(
         "Invalid Time",
-        "Please select a time within business hours.",
+        `Please select a time between ${formatTime(openingHour)} and ${formatTime(closingHour)}.`,
         [{ text: "OK" }]
       );
       return;
@@ -498,22 +478,110 @@ export default function BusinessDetailScreen({ route, navigation }) {
           onPress: async () => {
             try {
               await createAppointment(dateTime);
-              Alert.alert(
-                "Success!",
-                "Your appointment has been booked successfully.",
-                [{ text: "OK" }]
-              );
             } catch (error) {
-              Alert.alert(
-                "Error",
-                "Failed to book appointment. Please try again.",
-                [{ text: "OK" }]
-              );
+              console.error('Error in handleDateTimeSelect:', error);
             }
           }
         }
       ]
     );
+  };
+
+  const createAppointment = async (dateTime) => {
+    if (!userId) {
+      Alert.alert(
+        "Error",
+        "Please login to book an appointment",
+        [
+          { 
+            text: "OK",
+            onPress: () => navigation.navigate('Login')
+          }
+        ]
+      );
+      return;
+    }
+
+    try {
+      // Seçilen tarihi yerel saat dilimine göre ayarla
+      const localDate = new Date(dateTime);
+      
+      // UTC offset'i hesapla (Türkiye için +3)
+      const utcOffset = 3;
+      
+      // Yeni bir tarih oluştur ve UTC saatini ayarla
+      const utcDate = new Date(localDate.getTime() + (utcOffset * 60 * 60 * 1000));
+      
+      console.log('Appointment DateTime Details:', {
+        originalDate: dateTime,
+        localDate: localDate,
+        localHours: localDate.getHours(),
+        localMinutes: localDate.getMinutes(),
+        utcDate: utcDate,
+        utcIsoString: utcDate.toISOString(),
+        businessHours: {
+          opening: business.openingHour,
+          closing: business.closingHour
+        }
+      });
+
+      const appointmentData = {
+        userID: 5, // Sabit userID
+        businessID: parseInt(business.businessID),
+        appointmentDateTime: utcDate.toISOString(),
+        note: "no note attached",
+        status: "Pending"
+      };
+
+      console.log('Final appointment data:', JSON.stringify(appointmentData, null, 2));
+
+      const response = await fetch('https://nokta-appservice.azurewebsites.net/api/Appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'text/plain'
+        },
+        body: JSON.stringify(appointmentData)
+      });
+
+      const responseText = await response.text();
+      console.log('API Response:', {
+        status: response.status,
+        body: responseText
+      });
+
+      if (!response.ok) {
+        throw new Error(`Appointment creation failed: ${response.status} ${responseText}`);
+      }
+
+      Alert.alert(
+        "Success!",
+        `Your appointment has been booked successfully for ${localDate.toLocaleTimeString()}.`,
+        [
+          { 
+            text: "View Appointments",
+            onPress: () => navigation.navigate("Calendar")
+          },
+          {
+            text: "OK",
+            style: "cancel"
+          }
+        ]
+      );
+
+    } catch (error) {
+      console.error('Appointment creation error:', {
+        message: error.message,
+        stack: error.stack
+      });
+
+      Alert.alert(
+        "Error",
+        "Failed to book appointment. Please check the console for details.",
+        [{ text: "OK" }]
+      );
+      throw error;
+    }
   };
 
   const openAppointmentModal = () => {
