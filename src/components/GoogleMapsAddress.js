@@ -11,7 +11,7 @@ const GoogleMapsAddress = ({ onChange, value }) => {
 
       // Check if geolocation is available
       if (!navigator.geolocation) {
-        throw new Error("Tarayıcınız konum özelliğini desteklemiyor.");
+        throw new Error("Your browser doesn't support location features.");
       }
 
       // Get current position
@@ -38,17 +38,17 @@ const GoogleMapsAddress = ({ onChange, value }) => {
 
       // Get the address from OpenStreetMap Nominatim (no API key required)
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1&accept-language=tr`,
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1&accept-language=en`,
         {
           headers: {
-            'Accept-Language': 'tr-TR,tr',
+            'Accept-Language': 'en-US,en',
             'User-Agent': 'NoktaBusinessRegistration/1.0'
           }
         }
       );
 
       if (!response.ok) {
-        throw new Error(`Adres bulunamadı: ${response.status}`);
+        throw new Error(`Address not found: ${response.status}`);
       }
 
       const data = await response.json();
@@ -62,20 +62,20 @@ const GoogleMapsAddress = ({ onChange, value }) => {
           }
         });
       } else {
-        throw new Error("Adres bulunamadı, lütfen tekrar deneyin.");
+        throw new Error("Address not found, please try again.");
       }
     } catch (error) {
       console.error("Error getting location:", error);
       
       // User-friendly error messages
-      let message = "Konum alınamadı. Lütfen tekrar deneyin.";
+      let message = "Couldn't get location. Please try again.";
       
       if (error.code === 1) {
-        message = "Konum izni reddedildi. Lütfen tarayıcı ayarlarınızdan konum iznini etkinleştirin.";
+        message = "Location permission denied. Please enable location permission in your browser settings.";
       } else if (error.code === 2) {
-        message = "Konum kullanılamıyor. Lütfen tekrar deneyin.";
+        message = "Location unavailable. Please try again.";
       } else if (error.code === 3) {
-        message = "Konum isteği zaman aşımına uğradı. Lütfen tekrar deneyin.";
+        message = "Location request timed out. Please try again.";
       }
       
       setError(message);
@@ -90,7 +90,7 @@ const GoogleMapsAddress = ({ onChange, value }) => {
       <input
         type="text"
         name="address"
-        placeholder="Konumunuzu almak için butona tıklayın"
+        placeholder="Click the button to get your location"
         value={value || ''}
         onChange={() => {}} // Prevent editing
         readOnly={true}
@@ -110,7 +110,7 @@ const GoogleMapsAddress = ({ onChange, value }) => {
               <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
             </svg>
           </span>
-        ) : "Konumumu Al"}
+        ) : "Get My Location"}
       </button>
       
       {error && (

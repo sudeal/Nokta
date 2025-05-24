@@ -584,8 +584,8 @@ const Appointments = () => {
         const parsedData = JSON.parse(userData);
         const businessId = parsedData.businessID || parsedData.id;
         
-        setUserId(businessId || "Kullanıcı ID bulunamadı");
-        setBusinessName(parsedData.name || "İşletme adı bulunamadı");
+        setUserId(businessId || "User ID not found");
+        setBusinessName(parsedData.name || "Business name not found");
         
         // If we have a business ID, fetch all appointments (just once)
         if (businessId) {
@@ -593,12 +593,12 @@ const Appointments = () => {
         }
       } catch (error) {
         console.error("Error parsing user data:", error);
-        setUserId("Kullanıcı ID bulunamadı");
-        setBusinessName("İşletme adı bulunamadı");
+        setUserId("User ID not found");
+        setBusinessName("Business name not found");
       }
     } else {
-      setUserId("Giriş yapılmamış");
-      setBusinessName("Giriş yapılmamış");
+      setUserId("Not logged in");
+      setBusinessName("Not logged in");
     }
   }, []);
 
@@ -612,14 +612,14 @@ const Appointments = () => {
       );
       
       if (!response.ok) {
-        throw new Error("Randevular yüklenemedi");
+        throw new Error("Failed to load appointments");
       }
       
       const data = await response.json();
       setAppointments(data);
     } catch (error) {
       console.error("Error fetching appointments:", error);
-      setError("Randevular yüklenemedi: " + error.message);
+      setError("Failed to load appointments: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -635,7 +635,7 @@ const Appointments = () => {
       );
       
       if (!appointmentToUpdate) {
-        throw new Error("Randevu bulunamadı");
+        throw new Error("Appointment not found");
       }
       
       // Create updated appointment object
@@ -657,7 +657,7 @@ const Appointments = () => {
       );
       
       if (!response.ok) {
-        throw new Error("Randevu durumu güncellenemedi");
+        throw new Error("Failed to update appointment status");
       }
       
       // Update local state with the new appointment status
@@ -666,11 +666,11 @@ const Appointments = () => {
       ));
       
       // Show success message
-      alert(`Randevu durumu başarıyla "${newStatus}" olarak güncellendi`);
+      alert(`Appointment status successfully updated to "${newStatus}"`);
       
     } catch (error) {
       console.error("Error updating appointment status:", error);
-      alert("Randevu durumu güncellenemedi: " + error.message);
+      alert("Failed to update appointment status: " + error.message);
     } finally {
       setActionLoading(null);
     }
@@ -684,14 +684,14 @@ const Appointments = () => {
       // Get the business ID from localStorage
       const userData = localStorage.getItem("userData");
       if (!userData) {
-        throw new Error("Kullanıcı bilgisi bulunamadı");
+        throw new Error("User information not found");
       }
       
       const parsedData = JSON.parse(userData);
       const businessId = parsedData.businessID || parsedData.id;
       
       if (!businessId) {
-        throw new Error("İşletme ID bulunamadı");
+        throw new Error("Business ID not found");
       }
       
       // Call the dedicated endpoint to accept the appointment
@@ -706,7 +706,7 @@ const Appointments = () => {
       );
       
       if (!response.ok) {
-        throw new Error("Randevu kabul edilemedi");
+        throw new Error("Failed to accept appointment");
       }
       
       // Update local state with the new appointment status
@@ -715,11 +715,11 @@ const Appointments = () => {
       ));
       
       // Show success message
-      alert("Randevu başarıyla kabul edildi");
+      alert("Appointment successfully accepted");
       
     } catch (error) {
       console.error("Error accepting appointment:", error);
-      alert("Randevu kabul edilemedi: " + error.message);
+      alert("Failed to accept appointment: " + error.message);
     } finally {
       setActionLoading(null);
     }
@@ -742,18 +742,18 @@ const Appointments = () => {
       );
       
       if (!response.ok) {
-        throw new Error("Randevu silinemedi");
+        throw new Error("Failed to delete appointment");
       }
       
       // Remove the appointment from local state
       setAppointments(appointments.filter(app => app.appointmentID !== appointmentId));
       
       // Show success message
-      alert("Randevu başarıyla silindi");
+      alert("Appointment successfully deleted");
       
     } catch (error) {
       console.error("Error deleting appointment:", error);
-      alert("Randevu silinemedi: " + error.message);
+      alert("Failed to delete appointment: " + error.message);
     } finally {
       setActionLoading(null);
     }
@@ -1265,7 +1265,7 @@ const Appointments = () => {
       );
       
       if (!response.ok) {
-        throw new Error("Appointments could not be loaded for this date");
+        throw new Error("Failed to load appointments for this date");
       }
       
       const data = await response.json();
@@ -1328,7 +1328,7 @@ const Appointments = () => {
       );
       
       if (!response.ok) {
-        throw new Error("Could not load month appointments");
+        throw new Error("Failed to load month appointments");
       }
       
       const data = await response.json();

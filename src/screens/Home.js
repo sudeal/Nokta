@@ -10,7 +10,7 @@ const Home = () => {
         <div className="content-container hero-container">
           <div className="hero-content">
             <h1 className="hero-title">NOKTA</h1>
-            <p className="hero-subtitle">Müşteri Yönetimi & Randevu Sistemi</p>
+            <p className="hero-subtitle">Customer Management & Appointment System</p>
           </div>
           <div className="hero-image-container">
             <div className="hero-image">
@@ -19,11 +19,11 @@ const Home = () => {
             </div>
             <div className="floating-card card-1">
               <span className="card-icon">🔔</span>
-              <span className="card-text">Hızlı Müşteri Bul</span>
+              <span className="card-text">Quick Customer Search</span>
             </div>
             <div className="floating-card card-2">
               <span className="card-icon">📅</span>
-              <span className="card-text">Kolay Randevu Yönetimi</span>
+              <span className="card-text">Easy Appointment Management</span>
             </div>
           </div>
         </div>
@@ -34,8 +34,8 @@ const Home = () => {
         <div className="section-bg-shape"></div>
         <div className="content-container">
           <div className="section-header">
-            <h2>Neden Nokta?</h2>
-            <p>İşletmeniz için ihtiyaç duyduğunuz tüm randevu yönetim araçları</p>
+            <h2>Why Nokta?</h2>
+            <p>All appointment management tools you need for your business</p>
           </div>
           
           <div className="features-rows">
@@ -43,24 +43,24 @@ const Home = () => {
               <div className="feature-card">
                 <div className="feature-icon">⏰</div>
                 <div className="feature-content">
-                  <h3>Zaman Tasarrufu</h3>
-                  <p>Müşterilerinize anında ve kolay randevu imkanı sunarak telefonla rezervasyon süreçlerini ortadan kaldırın</p>
+                  <h3>Time Saving</h3>
+                  <p>Provide instant and easy appointments to your customers, eliminating phone reservation processes</p>
                 </div>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">🔍</div>
                 <div className="feature-content">
-                  <h3>Görünürlük</h3>
-                  <p>İşletmenizi daha fazla müşteriye ulaştırın ve hizmetlerinizi keşfetmelerini sağlayın</p>
+                  <h3>Visibility</h3>
+                  <p>Reach more customers and let them discover your services</p>
                 </div>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">🚀</div>
                 <div className="feature-content">
-                  <h3>Kolay Entegrasyon</h3>
-                  <p>Mevcut sisteminize hızlıca entegre ederek müşteri deneyimini iyileştirin</p>
+                  <h3>Easy Integration</h3>
+                  <p>Quickly integrate with your existing system to improve customer experience</p>
                 </div>
               </div>
             </div>
@@ -69,24 +69,24 @@ const Home = () => {
               <div className="feature-card">
                 <div className="feature-icon">🔔</div>
                 <div className="feature-content">
-                  <h3>Hatırlatmalar</h3>
-                  <p>Otomatik hatırlatmalarla iptal ve gecikme oranlarını azaltın</p>
+                  <h3>Reminders</h3>
+                  <p>Reduce cancellation and delay rates with automatic reminders</p>
                 </div>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">📊</div>
                 <div className="feature-content">
-                  <h3>Analiz</h3>
-                  <p>Kapsamlı raporlama araçları ile işletmenizin performansını takip edin</p>
+                  <h3>Analytics</h3>
+                  <p>Track your business performance with comprehensive reporting tools</p>
                 </div>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">🔒</div>
                 <div className="feature-content">
-                  <h3>Güvenli</h3>
-                  <p>Verileriniz kurumsal düzeyde güvenlikle korunur</p>
+                  <h3>Secure</h3>
+                  <p>Your data is protected with enterprise-level security</p>
                 </div>
               </div>
             </div>
@@ -98,8 +98,8 @@ const Home = () => {
       <section className="how-it-works">
         <div className="content-container">
           <div className="section-header">
-            <h2>Nasıl Çalışır?</h2>
-            <p>İşletmeniz için üç basit adımda online randevu sistemine geçin</p>
+            <h2>How It Works?</h2>
+            <p>Transition to an online appointment system in three simple steps for your business</p>
           </div>
           
           <div className="steps-container">
@@ -108,8 +108,8 @@ const Home = () => {
                 <div className="step-number">1</div>
               </div>
               <div className="step-content">
-                <h3>Hesap Oluşturun</h3>
-                <p>Birkaç dakika içinde işletmenizi sisteme ekleyin</p>
+                <h3>Create an Account</h3>
+                <p>Add your business to the system in just a few minutes</p>
               </div>
             </div>
             
@@ -120,8 +120,8 @@ const Home = () => {
                 <div className="step-number">2</div>
               </div>
               <div className="step-content">
-                <h3>Hizmetleri Tanımlayın</h3>
-                <p>Sunduğunuz hizmetleri ve boş zaman dilimlerinizi belirleyin</p>
+                <h3>Define Services</h3>
+                <p>Specify the services you offer and your available time slots</p>
               </div>
             </div>
             
@@ -132,8 +132,8 @@ const Home = () => {
                 <div className="step-number">3</div>
               </div>
               <div className="step-content">
-                <h3>Müşterileri Kabul Edin</h3>
-                <p>Müşteriler online randevu alabilir, siz de işinize odaklanabilirsiniz</p>
+                <h3>Accept Customers</h3>
+                <p>Customers can book appointments online while you focus on your business</p>
               </div>
             </div>
           </div>
@@ -145,14 +145,14 @@ const Home = () => {
         <div className="section-bg-shape founders-bg"></div>
         <div className="content-container">
           <div className="section-header">
-            <h2>Kurucularımız</h2>
-            <p>Nokta'nın arkasındaki yenilikçi ekip</p>
+            <h2>Our Founders</h2>
+            <p>The innovative team behind Nokta</p>
           </div>
           
           <div className="founders-grid">
             <div className="founder-card">
               <div className="founder-content">
-                <p>"İşletmeler için randevu planlama sürecindeki sorunları çözmek için Nokta'yı kurduk. Vizyonumuz, randevu alma işlemini herkes için basit ve verimli hale getirmektir."</p>
+                <p>"We founded Nokta to solve the problems in the appointment scheduling process for businesses. Our vision is to make appointment booking simple and efficient for everyone."</p>
               </div>
               <div className="founder-info">
                 <div className="founder-avatar">EÖ</div>
@@ -165,7 +165,7 @@ const Home = () => {
             
             <div className="founder-card">
               <div className="founder-content">
-                <p>"Platformumuz, işletmeler ve müşteriler arasında köprü görevi görüyor. Zaman tasarrufu sağlayan ve randevu planlama sorunlarını ortadan kaldıran teknolojiler geliştiriyoruz."</p>
+                <p>"Our platform serves as a bridge between businesses and customers. We develop technologies that save time and eliminate appointment scheduling problems."</p>
               </div>
               <div className="founder-info">
                 <div className="founder-avatar">MT</div>
@@ -178,7 +178,7 @@ const Home = () => {
             
             <div className="founder-card">
               <div className="founder-content">
-                <p>"Nokta'da, sorunsuz deneyimler yaratmaya inanıyoruz. Odak noktamız, randevu yönetimini işletmeler için zahmetsiz hale getiren sezgisel çözümler geliştirmektir."</p>
+                <p>"At Nokta, we believe in creating seamless experiences. Our focus is on developing intuitive solutions that make appointment management effortless for businesses."</p>
               </div>
               <div className="founder-info">
                 <div className="founder-avatar">SA</div>
