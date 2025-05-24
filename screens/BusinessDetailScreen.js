@@ -18,6 +18,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { MotiView } from "moti";
+import TemplateFeaturesBadge from "../components/TemplateFeaturesBadge";
+import TemplateViewer from "../components/TemplateViewer";
 
 const { width } = Dimensions.get("window");
 const HEADER_HEIGHT = 300;
@@ -338,6 +340,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
   const [userId, setUserId] = useState('user123'); // Temporary static userID
   const [userLocation, setUserLocation] = useState(null);
   const [distance, setDistance] = useState(null);
+  const [showTemplateViewer, setShowTemplateViewer] = useState(false);
 
   // Remove AsyncStorage related code and simplify the check
   useEffect(() => {
@@ -686,6 +689,42 @@ export default function BusinessDetailScreen({ route, navigation }) {
           <MotiView
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 500, delay: 800 }}
+            style={styles.section}
+          >
+            {business?.webSiteTemplateID && (
+              <>
+                <TemplateFeaturesBadge 
+                  templateId={business.webSiteTemplateID}
+                  colorScheme={colorScheme}
+                />
+                
+                <TouchableOpacity 
+                  style={[styles.viewTemplateButton, { marginTop: 10 }]}
+                  onPress={() => setShowTemplateViewer(true)}
+                >
+                  <LinearGradient
+                    colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.2)']}
+                    style={[styles.gradientButton, {
+                      borderWidth: 1,
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
+                      borderRadius: 16
+                    }]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    <Text style={[styles.buttonText, { fontSize: 16, fontWeight: '600' }]}>
+                      View Website Template
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            )}
+          </MotiView>
+
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: "timing", duration: 500, delay: 200 }}
             style={styles.section}
           >
@@ -783,6 +822,34 @@ export default function BusinessDetailScreen({ route, navigation }) {
           onSelect={handleDateTimeSelect}
           colorScheme={colorScheme}
         />
+        
+        {/* Template Viewer Modal */}
+        <Modal
+          visible={showTemplateViewer}
+          animationType="slide"
+          onRequestClose={() => setShowTemplateViewer(false)}
+        >
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={styles.templateHeader}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowTemplateViewer(false)}
+              >
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+              <Text style={styles.templateHeaderTitle}>Website Template Preview</Text>
+              <View style={{ width: 40 }} />
+            </View>
+            
+            {business?.webSiteTemplateID && (
+              <TemplateViewer 
+                templateId={business.webSiteTemplateID}
+                business={business}
+                colorScheme={colorScheme}
+              />
+            )}
+          </SafeAreaView>
+        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -1052,5 +1119,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     marginLeft: 10,
+  },
+  viewTemplateButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  templateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: '#fff',
+  },
+  templateHeaderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
   },
 }); 
