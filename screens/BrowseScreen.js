@@ -9,6 +9,7 @@ import {
   TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { getBusinessReviews, calculateAverageRating } from '../services/BusinessReviewService';
 
 // Geçici işletme verileri
 const dummyBusinesses = [
@@ -108,6 +109,7 @@ export default function BrowseScreen({ navigation }) {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredBusinesses, setFilteredBusinesses] = useState([]);
+  const [businessRatings, setBusinessRatings] = useState({});
 
   const categories = ["All", "Restaurant", "Cafe", "Fast Food", "Dessert"];
 
@@ -139,18 +141,80 @@ export default function BrowseScreen({ navigation }) {
     }
   };
 
+  // Add function to fetch ratings
+  const fetchBusinessRatings = async () => {
+    const ratings = {};
+    
+    for (const business of dummyBusinesses) {
+      try {
+        // Since we're using dummy data, let's create dummy ratings instead of API calls
+        // This avoids 404 errors for non-existent business IDs
+        ratings[business.id] = { 
+          rating: business.rating,
+          count: Math.floor(Math.random() * 10) + 1  // Random number of reviews between 1-10
+        };
+      } catch (error) {
+        console.error(`Error setting ratings for business ${business.id}:`, error);
+        ratings[business.id] = { 
+          rating: business.rating,
+          count: 0
+        };
+      }
+    }
+    
+    setBusinessRatings(ratings);
+  };
+  
+  useEffect(() => {
+    // Fetch ratings when component mounts
+    fetchBusinessRatings();
+  }, []);
+
+  // Render stars for a rating
+  const renderStars = (rating, size = 14) => {
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {[...Array(fullStars)].map((_, i) => (
+          <Ionicons key={`full-${i}`} name="star" size={size} color="#FFD700" />
+        ))}
+        {hasHalfStar && (
+          <Ionicons name="star-half" size={size} color="#FFD700" />
+        )}
+        {[...Array(emptyStars)].map((_, i) => (
+          <Ionicons key={`empty-${i}`} name="star-outline" size={size} color="#FFD700" />
+        ))}
+      </View>
+    );
+  };
+
   const renderBusinessItem = ({ item }) => (
     <TouchableOpacity
       style={styles.businessCard}
-      onPress={() => navigation.navigate('BusinessDetail', { business: item })}
+      onPress={() => navigation.navigate('BusinessDetail', { business: { businessID: parseInt(item.id), name: item.name } })}
     >
       <Image source={{ uri: item.image }} style={styles.businessImage} />
       <View style={styles.businessInfo}>
         <Text style={styles.businessName}>{item.name}</Text>
         <View style={styles.businessDetails}>
           <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={16} color="#FFD700" />
-            <Text style={styles.ratingText}>{item.rating}</Text>
+            {businessRatings[item.id] ? (
+              <>
+                {renderStars(businessRatings[item.id].rating)}
+                <Text style={styles.ratingText}>{businessRatings[item.id].rating.toFixed(1)}</Text>
+                {businessRatings[item.id].count > 0 && (
+                  <Text style={styles.reviewCount}>({businessRatings[item.id].count})</Text>
+                )}
+              </>
+            ) : (
+              <>
+                <Ionicons name="star" size={16} color="#FFD700" />
+                <Text style={styles.ratingText}>{item.rating}</Text>
+              </>
+            )}
           </View>
           <Text style={styles.businessType}>{item.type}</Text>
           <Text style={styles.distance}>{item.distance}</Text>
@@ -319,14 +383,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginRight: 8,
   },
   ratingText: {
     marginLeft: 4,
-    color: "#666",
+    color: '#666',
     fontSize: 14,
+  },
+  reviewCount: {
+    color: '#888',
+    fontSize: 12,
+    marginLeft: 2,
   },
   businessType: {
     color: "#666",

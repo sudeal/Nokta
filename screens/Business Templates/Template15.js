@@ -8,9 +8,19 @@ import { Dimensions } from 'react-native';
 const { width } = Dimensions.get('window');
 
 const Template15 = ({ business, colorScheme }) => {
-  // Template 15: Messaging, statistics, and directions features enabled
+  // Template 15: Messaging, statistics, and menu prices features enabled
+  const [showMenu, setShowMenu] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [message, setMessage] = useState('');
+  
+  // Sample menu data (in a real app, this would come from an API)
+  const menuItems = [
+    { id: 1, name: 'Item 1', price: '15.99 TL', description: 'Description for item 1' },
+    { id: 2, name: 'Item 2', price: '24.99 TL', description: 'Description for item 2' },
+    { id: 3, name: 'Item 3', price: '19.99 TL', description: 'Description for item 3' },
+    { id: 4, name: 'Item 4', price: '12.99 TL', description: 'Description for item 4' },
+    { id: 5, name: 'Item 5', price: '29.99 TL', description: 'Description for item 5' },
+  ];
   
   // Sample statistics data (in a real app, this would come from an API)
   const statisticsData = {
@@ -34,13 +44,6 @@ const Template15 = ({ business, colorScheme }) => {
   const handleCall = () => {
     if (business?.contactNumber) {
       Linking.openURL(`tel:${business.contactNumber}`);
-    }
-  };
-
-  const handleMap = () => {
-    if (business?.address) {
-      const address = encodeURIComponent(business.address);
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${address}`);
     }
   };
 
@@ -77,8 +80,8 @@ const Template15 = ({ business, colorScheme }) => {
               <Text style={styles.badgeText}>Statistics</Text>
             </View>
             <View style={styles.badge}>
-              <Ionicons name="navigate-outline" size={14} color="#fff" />
-              <Text style={styles.badgeText}>Directions</Text>
+              <Ionicons name="restaurant-outline" size={14} color="#fff" />
+              <Text style={styles.badgeText}>Menu Prices</Text>
             </View>
           </View>
         </View>
@@ -91,6 +94,37 @@ const Template15 = ({ business, colorScheme }) => {
             <Text style={[styles.sectionTitle, { color: colorScheme.primary }]}>About</Text>
           </View>
           <Text style={styles.description}>{business?.description || 'No description available'}</Text>
+        </View>
+        
+        {/* Menu Prices Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="restaurant-outline" size={24} color={colorScheme.primary} />
+            <Text style={[styles.sectionTitle, { color: colorScheme.primary }]}>Menu</Text>
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.toggleButton, { backgroundColor: colorScheme.primary }]}
+            onPress={() => setShowMenu(!showMenu)}
+          >
+            <Text style={styles.toggleButtonText}>
+              {showMenu ? 'Hide Menu' : 'Show Menu'}
+            </Text>
+          </TouchableOpacity>
+          
+          {showMenu && (
+            <View style={styles.menuList}>
+              {menuItems.map(item => (
+                <View key={item.id} style={styles.menuItem}>
+                  <View style={styles.menuItemHeader}>
+                    <Text style={styles.menuItemName}>{item.name}</Text>
+                    <Text style={[styles.menuItemPrice, { color: colorScheme.primary }]}>{item.price}</Text>
+                  </View>
+                  <Text style={styles.menuItemDescription}>{item.description}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
         
         {/* Statistics Section */}
@@ -152,44 +186,6 @@ const Template15 = ({ business, colorScheme }) => {
           />
         </View>
         
-        {/* Directions Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="navigate-outline" size={24} color={colorScheme.primary} />
-            <Text style={[styles.sectionTitle, { color: colorScheme.primary }]}>Location</Text>
-          </View>
-          
-          <View style={styles.addressContainer}>
-            <Text style={styles.addressText}>{business?.address || 'Address not available'}</Text>
-          </View>
-          
-          <TouchableOpacity 
-            style={[styles.directionsButton, { backgroundColor: colorScheme.primary }]}
-            onPress={handleMap}
-          >
-            <Ionicons name="navigate" size={20} color="#fff" />
-            <Text style={styles.directionsButtonText}>Get Directions</Text>
-          </TouchableOpacity>
-
-          <View style={styles.directionsInfo}>
-            <View style={styles.infoItem}>
-              <Ionicons name="time-outline" size={18} color={colorScheme.primary} />
-              <Text style={styles.infoText}>
-                {business?.openingHour && business?.closingHour 
-                  ? `Open ${business.openingHour}:00 - ${business.closingHour}:00`
-                  : 'Working hours not available'}
-              </Text>
-            </View>
-            
-            <View style={styles.infoItem}>
-              <Ionicons name="information-circle-outline" size={18} color={colorScheme.primary} />
-              <Text style={styles.infoText}>
-                Tap "Get Directions" to open in maps app
-              </Text>
-            </View>
-          </View>
-        </View>
-        
         {/* Contact Section with Messaging */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -218,7 +214,7 @@ const Template15 = ({ business, colorScheme }) => {
         
         <View style={styles.templateInfo}>
           <Text style={styles.templateText}>Template 15: Multi-Feature Website</Text>
-          <Text style={styles.templateFeatures}>Messaging, Statistics, and Directions features enabled</Text>
+          <Text style={styles.templateFeatures}>Messaging, Statistics, and Menu Prices features enabled</Text>
         </View>
       </View>
       
@@ -339,15 +335,7 @@ const styles = StyleSheet.create({
     color: '#718096',
     marginBottom: 15,
   },
-  addressContainer: {
-    marginBottom: 15,
-  },
-  addressText: {
-    fontSize: 16,
-    color: '#4a5568',
-    lineHeight: 24,
-  },
-  directionsButton: {
+  toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -355,25 +343,34 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
   },
-  directionsButtonText: {
+  toggleButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    marginLeft: 8,
   },
-  directionsInfo: {
-    backgroundColor: 'rgba(0, 0, 0, 0.03)',
-    padding: 15,
-    borderRadius: 10,
+  menuList: {
+    marginTop: 10,
   },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  menuItem: {
     marginBottom: 10,
   },
-  infoText: {
-    fontSize: 14,
+  menuItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  menuItemName: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: '#4a5568',
-    marginLeft: 8,
+  },
+  menuItemPrice: {
+    fontSize: 14,
+    color: '#718096',
+    marginLeft: 10,
+  },
+  menuItemDescription: {
+    fontSize: 14,
+    color: '#718096',
   },
   contactItem: {
     flexDirection: 'row',

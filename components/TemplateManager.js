@@ -2,22 +2,22 @@ import React from 'react';
 
 // Template features based on the provided table
 const TEMPLATE_FEATURES = {
-  1: { hasMessaging: false, hasStatistics: false, hasMenuPrices: false, hasDirections: false, description: "Hiçbir özellik açık değil" },
-  2: { hasMessaging: false, hasStatistics: false, hasMenuPrices: false, hasDirections: true, description: "Sadece 'directions' açık" },
-  3: { hasMessaging: false, hasStatistics: false, hasMenuPrices: true, hasDirections: false, description: "Sadece 'menu prices' açık" },
-  4: { hasMessaging: false, hasStatistics: true, hasMenuPrices: false, hasDirections: false, description: "Sadece 'statistics' açık" },
-  5: { hasMessaging: true, hasStatistics: false, hasMenuPrices: false, hasDirections: false, description: "Sadece 'messaging' açık" },
-  6: { hasMessaging: false, hasStatistics: false, hasMenuPrices: true, hasDirections: true, description: "'menu prices' ve 'directions' açık" },
-  7: { hasMessaging: false, hasStatistics: true, hasMenuPrices: false, hasDirections: true, description: "'statistics' ve 'directions' açık" },
-  8: { hasMessaging: false, hasStatistics: true, hasMenuPrices: true, hasDirections: false, description: "'statistics' ve 'menu prices' açık" },
-  9: { hasMessaging: true, hasStatistics: false, hasMenuPrices: false, hasDirections: true, description: "'messaging' ve 'directions' açık" },
-  10: { hasMessaging: true, hasStatistics: false, hasMenuPrices: true, hasDirections: false, description: "'messaging' ve 'menu prices' açık" },
-  11: { hasMessaging: true, hasStatistics: true, hasMenuPrices: false, hasDirections: false, description: "'messaging' ve 'statistics' açık" },
-  12: { hasMessaging: false, hasStatistics: true, hasMenuPrices: true, hasDirections: true, description: "'statistics', 'menu prices' ve 'directions' açık" },
-  13: { hasMessaging: true, hasStatistics: false, hasMenuPrices: true, hasDirections: true, description: "'messaging', 'menu prices' ve 'directions' açık" },
-  14: { hasMessaging: true, hasStatistics: true, hasMenuPrices: false, hasDirections: true, description: "'messaging', 'statistics' ve 'directions' açık" },
-  15: { hasMessaging: true, hasStatistics: true, hasMenuPrices: true, hasDirections: false, description: "'messaging', 'statistics' ve 'menu prices' açık" },
-  16: { hasMessaging: true, hasStatistics: true, hasMenuPrices: true, hasDirections: true, description: "Tüm özellikler açık" }
+  1: { hasMessaging: false, hasStatistics: false, hasMenuPrices: false, hasDirections: false, hasReviews: true, description: "Sadece 'reviews' açık" },
+  2: { hasMessaging: false, hasStatistics: false, hasMenuPrices: false, hasDirections: true, hasReviews: true, description: "'directions' ve 'reviews' açık" },
+  3: { hasMessaging: false, hasStatistics: false, hasMenuPrices: true, hasDirections: false, hasReviews: true, description: "'menu prices' ve 'reviews' açık" },
+  4: { hasMessaging: false, hasStatistics: false, hasMenuPrices: false, hasDirections: false, hasReviews: true, description: "Sadece 'reviews' açık" },
+  5: { hasMessaging: true, hasStatistics: false, hasMenuPrices: false, hasDirections: false, hasReviews: true, description: "'messaging' ve 'reviews' açık" },
+  6: { hasMessaging: false, hasStatistics: false, hasMenuPrices: true, hasDirections: true, hasReviews: true, description: "'menu prices', 'directions' ve 'reviews' açık" },
+  7: { hasMessaging: false, hasStatistics: false, hasMenuPrices: false, hasDirections: true, hasReviews: true, description: "'directions' ve 'reviews' açık" },
+  8: { hasMessaging: false, hasStatistics: false, hasMenuPrices: true, hasDirections: false, hasReviews: true, description: "'menu prices' ve 'reviews' açık" },
+  9: { hasMessaging: true, hasStatistics: false, hasMenuPrices: false, hasDirections: true, hasReviews: true, description: "'messaging', 'directions' ve 'reviews' açık" },
+  10: { hasMessaging: true, hasStatistics: false, hasMenuPrices: true, hasDirections: false, hasReviews: true, description: "'messaging', 'menu prices' ve 'reviews' açık" },
+  11: { hasMessaging: true, hasStatistics: false, hasMenuPrices: false, hasDirections: false, hasReviews: true, description: "'messaging' ve 'reviews' açık" },
+  12: { hasMessaging: false, hasStatistics: false, hasMenuPrices: true, hasDirections: true, hasReviews: true, description: "'menu prices', 'directions' ve 'reviews' açık" },
+  13: { hasMessaging: true, hasStatistics: false, hasMenuPrices: true, hasDirections: true, hasReviews: true, description: "'messaging', 'menu prices', 'directions' ve 'reviews' açık" },
+  14: { hasMessaging: true, hasStatistics: false, hasMenuPrices: false, hasDirections: true, hasReviews: true, description: "'messaging', 'directions' ve 'reviews' açık" },
+  15: { hasMessaging: true, hasStatistics: false, hasMenuPrices: true, hasDirections: false, hasReviews: true, description: "'messaging', 'menu prices' ve 'reviews' açık" },
+  16: { hasMessaging: true, hasStatistics: false, hasMenuPrices: true, hasDirections: true, hasReviews: true, description: "'messaging', 'menu prices', 'directions' ve 'reviews' açık" }
 };
 
 /**
@@ -46,9 +46,9 @@ export const getEnabledFeatures = (features) => {
   
   const enabledFeatures = [];
   if (features.hasMessaging) enabledFeatures.push('Messaging');
-  if (features.hasStatistics) enabledFeatures.push('Statistics');
   if (features.hasMenuPrices) enabledFeatures.push('Menu Prices');
   if (features.hasDirections) enabledFeatures.push('Directions');
+  if (features.hasReviews) enabledFeatures.push('Reviews');
   
   return enabledFeatures;
 };

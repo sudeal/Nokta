@@ -14,12 +14,14 @@ import {
   Alert,
   SafeAreaView,
   ActivityIndicator,
+  TextInput,
+  FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import TemplateFeaturesBadge from "../components/TemplateFeaturesBadge";
-import TemplateViewer from "../components/TemplateViewer";
+import { getBusinessReviews, calculateAverageRating, addBusinessReview } from '../services/BusinessReviewService';
 
 const { width } = Dimensions.get("window");
 const HEADER_HEIGHT = 300;
@@ -340,7 +342,15 @@ export default function BusinessDetailScreen({ route, navigation }) {
   const [userId, setUserId] = useState('user123'); // Temporary static userID
   const [userLocation, setUserLocation] = useState(null);
   const [distance, setDistance] = useState(null);
-  const [showTemplateViewer, setShowTemplateViewer] = useState(false);
+  
+  // Review states
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [userRating, setUserRating] = useState(0);
+  const [userComment, setUserComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   // Remove AsyncStorage related code and simplify the check
   useEffect(() => {
@@ -609,6 +619,144 @@ export default function BusinessDetailScreen({ route, navigation }) {
     return `${distance.toFixed(1)}km`;
   };
 
+  // Fetch reviews when component mounts
+  useEffect(() => {
+    if (business?.businessID) {
+      fetchReviews();
+    }
+  }, [business]);
+
+  const fetchReviews = async () => {
+    if (!business?.businessID) return;
+    
+    setReviewsLoading(true);
+    try {
+      // Temporarily use dummy reviews instead of API calls
+      const dummyReviews = [
+        {
+          userID: 1,
+          businessID: business.businessID,
+          rating: 4.5,
+          comment: "Excellent service and friendly staff!",
+          createdAt: new Date(Date.now() - 86400000 * 7).toISOString() // 7 days ago
+        },
+        {
+          userID: 2,
+          businessID: business.businessID,
+          rating: 5,
+          comment: "Amazing experience. Would definitely recommend!",
+          createdAt: new Date(Date.now() - 86400000 * 14).toISOString() // 14 days ago
+        },
+        {
+          userID: 3,
+          businessID: business.businessID,
+          rating: 4,
+          comment: "Good quality service but a bit pricey.",
+          createdAt: new Date(Date.now() - 86400000 * 21).toISOString() // 21 days ago
+        }
+      ];
+      
+      setReviews(dummyReviews);
+      
+      // Calculate average rating
+      const avgRating = calculateAverageRating(dummyReviews);
+      setAverageRating(avgRating);
+    } catch (error) {
+      console.error('Error setting dummy reviews:', error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (userRating === 0) {
+      Alert.alert('Error', 'Please select a rating');
+      return;
+    }
+    
+    if (userComment.trim() === '') {
+      Alert.alert('Error', 'Please enter a comment');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      // Create dummy review instead of API call
+      const newReview = {
+        userID: 5, // Fixed userID for demo
+        businessID: business.businessID,
+        rating: userRating,
+        comment: userComment,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Add the new review to the list
+      setReviews([...reviews, newReview]);
+      
+      // Recalculate average rating
+      const avgRating = calculateAverageRating([...reviews, newReview]);
+      setAverageRating(avgRating);
+      
+      // Reset form and close modal
+      setUserRating(0);
+      setUserComment('');
+      setShowReviewModal(false);
+      
+      Alert.alert('Success', 'Your review has been submitted!');
+    } catch (error) {
+      console.error('Error with dummy review:', error);
+      Alert.alert('Error', 'Failed to submit review. Please try again.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const renderStars = (rating, size = 16, interactive = false) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    
+    for (let i = 1; i <= 5; i++) {
+      let iconName = 'star-outline';
+      if (i <= fullStars) {
+        iconName = 'star';
+      } else if (i === fullStars + 1 && hasHalfStar) {
+        iconName = 'star-half';
+      }
+      
+      if (interactive) {
+        stars.push(
+          <TouchableOpacity 
+            key={i} 
+            onPress={() => setUserRating(i)}
+            style={{ padding: 4 }}
+          >
+            <Ionicons name={iconName} size={size} color={i <= userRating ? "#FFD700" : "#ccc"} />
+          </TouchableOpacity>
+        );
+      } else {
+        stars.push(
+          <Ionicons key={i} name={iconName} size={size} color="#FFD700" />
+        );
+      }
+    }
+    
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {stars}
+      </View>
+    );
+  };
+
+  const formatReviewDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
   return (
     <LinearGradient
       colors={colorScheme.gradient}
@@ -682,7 +830,85 @@ export default function BusinessDetailScreen({ route, navigation }) {
                     </Text>
                   </View>
                 )}
+                <View style={[styles.ratingContainer, { 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.3)'
+                }]}>
+                  <Ionicons name="star" size={20} color="#FFD700" />
+                  <Text style={[styles.ratingText, { fontWeight: '600' }]}>
+                    {averageRating > 0 ? averageRating.toFixed(1) : 'No ratings'}
+                  </Text>
+                </View>
               </View>
+            </LinearGradient>
+          </MotiView>
+
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 500, delay: 700 }}
+            style={styles.section}
+          >
+            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>Reviews</Text>
+            <LinearGradient
+              colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.1)']}
+              style={[styles.sectionCard, { 
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: 20
+              }]}
+            >
+              <View style={styles.reviewHeader}>
+                <View style={styles.reviewSummary}>
+                  <Text style={styles.averageRating}>
+                    {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
+                  </Text>
+                  {renderStars(averageRating, 20)}
+                  <Text style={styles.reviewCount}>
+                    {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+                  </Text>
+                </View>
+                <TouchableOpacity 
+                  style={[styles.addReviewButton, { backgroundColor: colorScheme.accent || 'rgba(255, 255, 255, 0.2)' }]}
+                  onPress={() => setShowReviewModal(true)}
+                >
+                  <Ionicons name="create-outline" size={18} color="#fff" />
+                  <Text style={styles.addReviewText}>Write a Review</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {reviewsLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#fff" />
+                </View>
+              ) : reviews.length > 0 ? (
+                <View style={styles.reviewsList}>
+                  {reviews.map((review, index) => (
+                    <View key={index} style={styles.reviewItem}>
+                      <View style={styles.reviewItemHeader}>
+                        <View style={styles.userInfo}>
+                          <View style={styles.userAvatar}>
+                            <Text style={styles.userInitial}>
+                              {String.fromCharCode(65 + index % 26)}
+                            </Text>
+                          </View>
+                          <Text style={styles.userName}>User {review.userID}</Text>
+                        </View>
+                        <Text style={styles.reviewDate}>
+                          {formatReviewDate(review.createdAt)}
+                        </Text>
+                      </View>
+                      {renderStars(review.rating)}
+                      <Text style={styles.reviewComment}>{review.comment}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.noReviewsText}>
+                  No reviews yet. Be the first to review!
+                </Text>
+              )}
             </LinearGradient>
           </MotiView>
 
@@ -694,30 +920,22 @@ export default function BusinessDetailScreen({ route, navigation }) {
           >
             {business?.webSiteTemplateID && (
               <>
-                <TemplateFeaturesBadge 
-                  templateId={business.webSiteTemplateID}
-                  colorScheme={colorScheme}
-                />
-                
-                <TouchableOpacity 
-                  style={[styles.viewTemplateButton, { marginTop: 10 }]}
-                  onPress={() => setShowTemplateViewer(true)}
+                <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>Website Features</Text>
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.1)']}
+                  style={[styles.sectionCard, { 
+                    borderWidth: 1,
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: 20,
+                    padding: 20
+                  }]}
                 >
-                  <LinearGradient
-                    colors={['rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.2)']}
-                    style={[styles.gradientButton, {
-                      borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.3)',
-                      borderRadius: 16
-                    }]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                  >
-                    <Text style={[styles.buttonText, { fontSize: 16, fontWeight: '600' }]}>
-                      View Website Template
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                  <TemplateFeaturesBadge 
+                    templateId={business.webSiteTemplateID}
+                    colorScheme={colorScheme}
+                    business={business}
+                  />
+                </LinearGradient>
               </>
             )}
           </MotiView>
@@ -823,32 +1041,54 @@ export default function BusinessDetailScreen({ route, navigation }) {
           colorScheme={colorScheme}
         />
         
-        {/* Template Viewer Modal */}
+        {/* Review Modal */}
         <Modal
-          visible={showTemplateViewer}
+          visible={showReviewModal}
           animationType="slide"
-          onRequestClose={() => setShowTemplateViewer(false)}
+          transparent={true}
+          onRequestClose={() => setShowReviewModal(false)}
         >
-          <SafeAreaView style={{ flex: 1 }}>
-            <View style={styles.templateHeader}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowTemplateViewer(false)}
-              >
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-              <Text style={styles.templateHeaderTitle}>Website Template Preview</Text>
-              <View style={{ width: 40 }} />
-            </View>
-            
-            {business?.webSiteTemplateID && (
-              <TemplateViewer 
-                templateId={business.webSiteTemplateID}
-                business={business}
-                colorScheme={colorScheme}
+          <View style={styles.reviewModalContainer}>
+            <View style={styles.reviewModalContent}>
+              <View style={styles.reviewModalHeader}>
+                <Text style={styles.reviewModalTitle}>Write a Review</Text>
+                <TouchableOpacity onPress={() => setShowReviewModal(false)}>
+                  <Ionicons name="close" size={24} color="#333" />
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.ratingLabel}>Your Rating</Text>
+              <View style={styles.ratingStars}>
+                {renderStars(5, 32, true)}
+              </View>
+              
+              <Text style={styles.commentLabel}>Your Review</Text>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Share your experience..."
+                value={userComment}
+                onChangeText={setUserComment}
+                multiline
+                numberOfLines={4}
               />
-            )}
-          </SafeAreaView>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.submitReviewButton, 
+                  { backgroundColor: colorScheme.primary },
+                  submittingReview && { opacity: 0.7 }
+                ]}
+                onPress={handleSubmitReview}
+                disabled={submittingReview}
+              >
+                {submittingReview ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitReviewText}>Submit Review</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </Modal>
       </SafeAreaView>
     </LinearGradient>
@@ -1146,5 +1386,177 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+  },
+  // Review styles
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+  },
+  ratingText: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  reviewSummary: {
+    alignItems: 'center',
+  },
+  averageRating: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  reviewCount: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+    marginTop: 5,
+  },
+  addReviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  addReviewText: {
+    color: '#fff',
+    marginLeft: 5,
+    fontWeight: '600',
+  },
+  reviewsList: {
+    marginTop: 10,
+  },
+  reviewItem: {
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+  },
+  reviewItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  userAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  userInitial: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  userName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  reviewDate: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+  },
+  reviewComment: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
+    marginTop: 10,
+    lineHeight: 22,
+  },
+  noReviewsText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 16,
+    textAlign: 'center',
+    padding: 20,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  reviewModalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 20,
+  },
+  reviewModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    width: '100%',
+    maxWidth: 500,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  reviewModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    paddingBottom: 10,
+  },
+  reviewModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  ratingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  ratingStars: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  commentLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  commentInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 15,
+    fontSize: 16,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    marginBottom: 20,
+  },
+  submitReviewButton: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  submitReviewText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 }); 
