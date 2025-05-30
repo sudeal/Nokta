@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -7,63 +8,135 @@ import {
   TouchableOpacity,
   Modal,
   Linking,
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { getUserProfile } from '../services/UserService';
 
 export default function ProfileScreen({ navigation }) {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userId, setUserId] = useState(null);
 
-  const user = {
-    name: "Melike Yılmaz",
-    email: "melike@example.com",
-    phone: "+90 555 123 4567",
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+      const storedUserData = await AsyncStorage.getItem('userData');
+      console.log('Stored user data:', storedUserData);
+      
+      if (!storedUserData) {
+        setError('Please login to view your profile');
+        setLoading(false);
+        setTimeout(() => {
+          navigation.replace('Login');
+        }, 2000);
+        return;
+      }
+
+      const parsedUserData = JSON.parse(storedUserData);
+      console.log('Parsed user data:', parsedUserData);
+      
+      if (!parsedUserData.userID) {
+        setError('Invalid user data. Redirecting to login...');
+        setLoading(false);
+        setTimeout(() => {
+          navigation.replace('Login');
+        }, 2000);
+        return;
+      }
+
+      setUserId(parsedUserData.userID);
+      await fetchUserProfile(parsedUserData.userID);
+    } catch (err) {
+      console.error('Error loading user data:', err);
+      setError('Failed to load user data. Redirecting to login...');
+      setLoading(false);
+      setTimeout(() => {
+        navigation.replace('Login');
+      }, 2000);
+    }
+  };
+
+  const fetchUserProfile = async (id) => {
+    try {
+      setLoading(true);
+      console.log('Fetching profile for ID:', id);
+      const data = await getUserProfile(id);
+      console.log('Profile data received:', data);
+      setUserData(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError('Failed to load profile data. Please try again.');
+      Alert.alert('Error', 'Failed to load profile data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const helpOptions = [
     {
       icon: "help-circle-outline",
-      title: "Sık Sorulan Sorular",
-      onPress: () => navigation.navigate("FAQ"), // FAQ ekranı oluşturulmalı
+      title: "Frequently Asked Questions",
+      onPress: () => navigation.navigate("FAQ"),
     },
     {
       icon: "mail-outline",
-      title: "Bize Ulaşın",
+      title: "Contact Us",
       onPress: () => Linking.openURL("mailto:support@nokta.com"),
     },
     {
       icon: "call-outline",
-      title: "Müşteri Hizmetleri",
+      title: "Customer Service",
       onPress: () => Linking.openURL("tel:+908502123456"),
     },
     {
       icon: "document-text-outline",
-      title: "Kullanım Koşulları",
-      onPress: () => navigation.navigate("Terms"), // Terms ekranı oluşturulmalı
+      title: "Terms of Use",
+      onPress: () => navigation.navigate("Terms"),
     },
   ];
 
   const menuItems = [
     {
       icon: "calendar-outline",
-      title: "Randevularım",
+      title: "My Appointments",
       onPress: () => navigation.navigate("Calendar"),
     },
     {
       icon: "notifications-outline",
-      title: "Bildirimler",
+      title: "Notifications",
       onPress: () => navigation.navigate("Notification"),
     },
     {
       icon: "help-circle-outline",
-      title: "Yardım",
+      title: "Help",
       onPress: () => setHelpModalVisible(true),
     },
   ];
 
   const handleForgotPassword = () => {
-    // Add your forgot password logic here
-    navigation.navigate("ForgotPassword"); // You'll need to create this screen
+    navigation.navigate("ForgotPassword");
+  };
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem("userData");
+      navigation.replace("Login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Error", "Could not log out. Please try again.");
+    }
   };
 
   const renderHelpModal = () => (
@@ -75,7 +148,7 @@ export default function ProfileScreen({ navigation }) {
     >
       <View style={styles.modalContainer}>
         <LinearGradient
-          colors={["#4C1D95", "#7C3AED"]} // Deeper purple gradient
+          colors={["#4C1D95", "#7C3AED"]}
           style={styles.modalGradient}
         >
           <View style={styles.modalContent}>
@@ -192,24 +265,105 @@ export default function ProfileScreen({ navigation }) {
     </Modal>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4B63DB" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => loadUserData()}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container}>
-      <LinearGradient
-        colors={["#4C1D95", "#7C3AED"]}
-        style={styles.header}
-      >
-        <View style={styles.profileInfo}>
-          <Text style={styles.name}>{user.name}</Text>
-          <View style={styles.contactInfoContainer}>
-            <Ionicons name="mail-outline" size={20} color="#E9D5FF" />
-            <Text style={styles.email}>{user.email}</Text>
-          </View>
-          <View style={styles.contactInfoContainer}>
-            <Ionicons name="call-outline" size={20} color="#E9D5FF" />
-            <Text style={styles.phone}>{user.phone}</Text>
-          </View>
+    <LinearGradient
+      colors={['#4B63DB', '#8B5CF6']}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profile</Text>
         </View>
-      </LinearGradient>
+
+        <ScrollView style={styles.content}>
+          <View style={styles.profileCard}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {userData?.name?.charAt(0).toUpperCase() || '?'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.infoSection}>
+              <View style={styles.infoRow}>
+                <Ionicons name="person-outline" size={24} color="#4B63DB" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Name</Text>
+                  <Text style={styles.infoValue}>{userData?.name || 'Not set'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Ionicons name="mail-outline" size={24} color="#4B63DB" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Email</Text>
+                  <Text style={styles.infoValue}>{userData?.email || 'Not set'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Ionicons name="call-outline" size={24} color="#4B63DB" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Phone</Text>
+                  <Text style={styles.infoValue}>{userData?.phoneNumber || 'Not set'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Ionicons name="location-outline" size={24} color="#4B63DB" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Location</Text>
+                  <Text style={styles.infoValue}>{userData?.location || 'Not set'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Ionicons name="calendar-outline" size={24} color="#4B63DB" />
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Age</Text>
+                  <Text style={styles.infoValue}>{userData?.age || 'Not set'}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={() => navigation.navigate('EditProfile', { userData })}
+          >
+            <LinearGradient
+              colors={['#4B63DB', '#8B5CF6']}
+              style={styles.gradientButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.editButtonText}>Edit Profile</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
 
       <View style={styles.menuContainer}>
         {menuItems.map((item, index) => (
@@ -237,63 +391,134 @@ export default function ProfileScreen({ navigation }) {
 
       <TouchableOpacity
         style={styles.logoutButton}
-        onPress={() => navigation.navigate("Login")}
+        onPress={handleLogout}
       >
         <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
-        <Text style={styles.logoutText}>Çıkış Yap</Text>
+        <Text style={styles.logoutText}>Log Out</Text>
       </TouchableOpacity>
 
       {renderHelpModal()}
-    </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F3FF", // Light purple background
+  },
+  safeArea: {
+    flex: 1,
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: "#4C1D95",
+    padding: 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : 16,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: '#666',
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  retryButton: {
+    padding: 10,
+    backgroundColor: '#4B63DB',
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  profileCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 5,
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 10,
+      height: 2,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 12,
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  profileInfo: {
-    alignItems: "center",
-    paddingHorizontal: 20,
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  name: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#FFF",
-    marginBottom: 8,
-    letterSpacing: 0.5,
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#4B63DB',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  contactInfoContainer: {
+  avatarText: {
+    fontSize: 40,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  infoSection: {
+    gap: 20,
+  },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    gap: 15,
   },
-  email: {
-    fontSize: 16,
-    color: "#E9D5FF",
-    marginLeft: 8,
-    letterSpacing: 0.3,
+  infoContent: {
+    flex: 1,
   },
-  phone: {
+  infoLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  infoValue: {
     fontSize: 16,
-    color: "#E9D5FF",
-    marginLeft: 8,
-    letterSpacing: 0.3,
+    color: '#333',
+    fontWeight: '500',
+  },
+  editButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  gradientButton: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  editButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   menuContainer: {
     backgroundColor: "#FFF",
@@ -389,7 +614,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(76, 29, 149, 0.15)', // Transparent deep purple
+    backgroundColor: "rgba(76, 29, 149, 0.15)",
   },
   modalGradient: {
     flex: 1,
@@ -399,27 +624,27 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     flex: 1,
-    backgroundColor: '#F5F3FF', // Very light purple background
+    backgroundColor: "#F5F3FF",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: 20,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 25,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#DDD6FE',
+    borderBottomColor: "#DDD6FE",
   },
   titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4C1D95', // Deep purple
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#4C1D95",
     padding: 10,
     borderRadius: 15,
-    shadowColor: '#4C1D95',
+    shadowColor: "#4C1D95",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
@@ -427,16 +652,16 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontWeight: "700",
+    color: "#ffffff",
     marginLeft: 10,
     letterSpacing: 0.8,
   },
   closeButton: {
     padding: 8,
-    backgroundColor: '#4C1D95',
+    backgroundColor: "#4C1D95",
     borderRadius: 25,
-    shadowColor: '#4C1D95',
+    shadowColor: "#4C1D95",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
@@ -446,26 +671,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   helpSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     borderRadius: 20,
     padding: 18,
     marginBottom: 18,
-    shadowColor: '#4C1D95',
+    shadowColor: "#4C1D95",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#E9D5FF',
+    borderColor: "#E9D5FF",
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 15,
-    backgroundColor: '#7C3AED',
+    backgroundColor: "#7C3AED",
     padding: 12,
     borderRadius: 12,
-    shadowColor: '#4C1D95',
+    shadowColor: "#4C1D95",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
@@ -473,28 +698,28 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontWeight: "700",
+    color: "#ffffff",
     marginLeft: 12,
     letterSpacing: 0.8,
   },
   welcomeText: {
     fontSize: 19,
     lineHeight: 28,
-    color: '#4C1D95',
-    textAlign: 'center',
-    fontWeight: '600',
+    color: "#4C1D95",
+    textAlign: "center",
+    fontWeight: "600",
     letterSpacing: 0.7,
     marginVertical: 10,
   },
   helpText: {
     fontSize: 16,
     lineHeight: 26,
-    color: '#6B7280',
+    color: "#6B7280",
     paddingLeft: 15,
     paddingRight: 15,
     marginTop: 8,
-    fontWeight: '400',
+    fontWeight: "400",
     letterSpacing: 0.5,
-  }
+  },
 });

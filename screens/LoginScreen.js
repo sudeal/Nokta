@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
@@ -85,71 +86,78 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleLogin = async () => {
-    if (!validateForm()) {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     setLoading(true);
-
-    const loginData = {
-      email,
-      password,
-    };
-
     try {
-      const response = await fetch(
-        "https://nokta-appservice.azurewebsites.net/api/Users/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            accept: "text/plain",
-          },
-          body: JSON.stringify(loginData),
-        }
-      );
+      // Önce login isteği
+      const loginResponse = await fetch('https://nokta-appservice.azurewebsites.net/api/Users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        })
+      });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      
-      if (response.ok) {
-        const responseText = await response.text();
-        console.log('Raw response text:', responseText);
-        
-        // API yanıtını kontrol et
-        if (responseText.includes('Login successful')) {
-          // Login başarılı mesajı geldiğinde, kullanıcı bilgilerini almak için ikinci bir istek yap
-          const userResponse = await fetch(
-            `https://nokta-appservice.azurewebsites.net/api/Users/getuser?email=${loginData.email}`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                accept: "application/json",
-              },
+      if (!loginResponse.ok) {
+        throw new Error('Login failed');
+      }
+
+      const loginText = await loginResponse.text();
+      console.log('Login response:', loginText);
+
+      if (loginText.includes('Login successful')) {
+        // Login başarılıysa kullanıcı bilgilerini al
+        const userResponse = await fetch(
+          `https://nokta-appservice.azurewebsites.net/api/Users/email/${encodeURIComponent(email)}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
             }
-          );
-          
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            const firstName = userData.name ? userData.name.split(' ')[0] : "Misafir";
-            global.userData = { ...userData, firstName };
-          } else {
-            global.userData = { name: "Misafir", firstName: "Misafir" };
           }
-        } else {
-          global.userData = { name: "Misafir", firstName: "Misafir" };
+        );
+
+        if (!userResponse.ok) {
+          console.error('User data response status:', userResponse.status);
+          const errorText = await userResponse.text();
+          console.error('User data error response:', errorText);
+          throw new Error('Failed to get user data');
         }
+
+        const userData = await userResponse.json();
+        console.log('User data received:', userData);
+
+        if (!userData || !userData.userID) {
+          throw new Error('Invalid user data received');
+        }
+
+        // Kullanıcı bilgilerini AsyncStorage'a kaydet
+        const userDataToStore = {
+          userID: userData.userID,
+          email: userData.email,
+          name: userData.name
+        };
         
-        Alert.alert("Başarılı", "Giriş başarılı!");
-        navigation.replace("MainTabs");
+        console.log('Storing user data:', userDataToStore);
+        await AsyncStorage.setItem('userData', JSON.stringify(userDataToStore));
+
+        // Ana sayfaya yönlendir
+        navigation.replace('MainTabs');
       } else {
-        const errorMessage = await response.text();
-        Alert.alert("Hata", errorMessage || "Giriş başarısız.");
+        throw new Error('Login failed');
       }
     } catch (error) {
-      Alert.alert("Hata", "Bir hata oluştu. Lütfen tekrar deneyin.");
-      console.error(error);
+      console.error('Login error:', error);
+      Alert.alert('Error', 'Login failed. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }
