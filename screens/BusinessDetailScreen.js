@@ -635,6 +635,8 @@ export default function BusinessDetailScreen({ route, navigation }) {
     try {
       // Use the actual API service to fetch reviews
       const fetchedReviews = await getBusinessReviews(business.businessID);
+      
+      // Yorumları direkt olarak göster, Gemini API zaten uygunsuz içeriği filtreleyecek
       setReviews(fetchedReviews);
       
       // Calculate average rating
@@ -657,13 +659,13 @@ export default function BusinessDetailScreen({ route, navigation }) {
     }
     
     if (userComment.trim() === '') {
-      Alert.alert('Error', 'Please enter a comment');
+      Alert.alert('Error', 'Please write a comment');
       return;
     }
 
     setSubmittingReview(true);
     try {
-      // Use the actual API service to submit the review
+      // Yorumu Gemini API ile kontrol edip veritabanına ekleyecek olan servis
       const userId = 5; // Fixed userID for demo
       const businessId = business.businessID;
       const result = await addBusinessReview(userId, businessId, userRating, userComment);
@@ -688,10 +690,20 @@ export default function BusinessDetailScreen({ route, navigation }) {
       setUserComment('');
       setShowReviewModal(false);
       
-      Alert.alert('Success', 'Your review has been submitted!');
+      Alert.alert('Successful', 'Your comment has been sent successfully!');
     } catch (error) {
       console.error('Error submitting review:', error);
-      Alert.alert('Error', 'Failed to submit review. Please try again.');
+      
+      // Uygunsuz içerik hatası için özel mesaj
+      if (error.message && error.message.includes('Inappropriate Content')) {
+        Alert.alert(
+          'Inappropriate Content', 
+          'Your comment was rejected because it contains inappropriate content. Please write a comment that complies with our guidelines.',
+          [{ text: 'Ok' }]
+        );
+      } else {
+        Alert.alert('Error', 'An error occurred while submitting the comment. Please try again.');
+      }
     } finally {
       setSubmittingReview(false);
     }
@@ -879,7 +891,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
                               {String.fromCharCode(65 + index % 26)}
                             </Text>
                           </View>
-                          <Text style={styles.userName}>User {review.userID}</Text>
+                          <Text style={styles.userName}>Kullanıcı {review.userID}</Text>
                         </View>
                         <Text style={styles.reviewDate}>
                           {formatReviewDate(review.createdAt)}
@@ -892,7 +904,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
                 </View>
               ) : (
                 <Text style={styles.noReviewsText}>
-                  No reviews yet. Be the first to review!
+                  No reviews yet. Be the first to write a review!
                 </Text>
               )}
             </LinearGradient>
@@ -1064,7 +1076,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
                     {renderStars(5, 32, true)}
                   </View>
                   
-                  <Text style={styles.commentLabel}>Your Review</Text>
+                  <Text style={styles.commentLabel}>Your Comment</Text>
                   <TextInput
                     style={styles.commentInput}
                     placeholder="Share your experience..."

@@ -1,6 +1,62 @@
 import axios from 'axios';
 
 const API_URL = 'https://nokta-appservice.azurewebsites.net/api';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_KEY = 'AIzaSyACFOvWFANIz13HHijbR3Lo8wesreA5gbw'; // Gemini API Key
+
+/**
+ * Gemini API kullanarak bir yorumu direkt değerlendir (test için)
+ * @param {string} comment - Değerlendirilecek yorum 
+ * @returns {Promise<Object>} Değerlendirme sonucu
+ */
+export const evaluateCommentWithGemini = async (comment) => {
+  try {
+    console.log(`Gemini API ile değerlendiriliyor: "${comment}"`);
+    
+    const requestData = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `Aşağıdaki yorumu değerlendir ve uygunsuz içerik (küfür, hakaret, cinsel içerik, şiddet, tehdit, ırkçılık) içerip içermediğini belirt. Sadece "uygun" veya "uygunsuz" olarak cevap ver. Argo dili, müstehcen kelimeleri, hakaret ve her türlü uygunsuz ifadeyi tespit et:\n\n"${comment}"`
+            }
+          ]
+        }
+      ]
+    };
+    
+    console.log('Gemini API isteği gönderiliyor:', JSON.stringify(requestData, null, 2));
+    
+    const response = await axios.post(
+      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      requestData,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+    
+    console.log('Gemini API yanıtı alındı:', JSON.stringify(response.data, null, 2));
+    
+    const result = response.data.candidates[0].content.parts[0].text.trim().toLowerCase();
+    const isAppropriate = result.includes('uygun') && !result.includes('uygunsuz');
+    
+    return {
+      originalComment: comment,
+      geminiResponse: result,
+      isAppropriate: isAppropriate,
+      rawResponse: response.data
+    };
+  } catch (error) {
+    console.error('Gemini API değerlendirme hatası:', error);
+    return {
+      originalComment: comment,
+      error: error.message,
+      isAppropriate: false
+    };
+  }
+};
 
 /**
  * Fetch all reviews for a specific business
@@ -52,6 +108,67 @@ export const calculateAverageRating = (reviews) => {
 };
 
 /**
+ * Yorumun uygun olup olmadığını Gemini API kullanarak kontrol eder
+ * @param {string} comment - Yorumun içeriği
+ * @returns {Promise<boolean>} Yorum uygunsa true, değilse false döner
+ */
+export const checkReviewContentWithGemini = async (comment) => {
+  try {
+    const response = await axios.post(
+      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      {
+        contents: [
+          {
+            parts: [
+              {
+                text: `Review the comment below and classify it as either "appropriate" or "inappropriate".
+
+Appropriate comments can:
+- Express negative opinions or bad experiences
+- Be critical of service or products
+- Express disappointment or dissatisfaction
+
+Inappropriate comments contain:
+- Profanity or curse words
+- Personal insults or name-calling
+- Racist, sexist, or discriminatory language
+- Threats or violent content
+- Sexual content or innuendo
+
+Comment to evaluate: "${comment}"
+
+Reply with only a single word: "appropriate" or "inappropriate"`
+              }
+            ]
+          }
+        ]
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+
+    const result = response.data.candidates[0].content.parts[0].text.trim().toLowerCase();
+    console.log('Gemini API yorumu değerlendirdi:', result);
+    
+    // Eğer yanıt "appropriate" içeriyorsa ve "inappropriate" içermiyorsa, yorum uygundur
+    const isAppropriate = result.includes('appropriate') && !result.includes('inappropriate');
+    
+    if (!isAppropriate) {
+      console.log(`Gemini API uygunsuz içerik tespit etti: "${comment}"`);
+    }
+    
+    return isAppropriate;
+  } catch (error) {
+    console.error('Gemini API ile yorum kontrolü sırasında hata:', error);
+    // Hata durumunda yorumu reddet
+    return false;
+  }
+};
+
+/**
  * Add a new review for a business
  * @param {number} userId - The user ID
  * @param {number} businessId - The business ID
@@ -61,12 +178,26 @@ export const calculateAverageRating = (reviews) => {
  */
 export const addBusinessReview = async (userId, businessId, rating, comment) => {
   try {
+    console.log(`Yorum kontrol ediliyor: "${comment}"`);
+    
+    // Yorumu Gemini API ile kontrol et
+    const isAppropriate = await checkReviewContentWithGemini(comment);
+    
+    if (!isAppropriate) {
+      console.error('Yorum uygunsuz içerik içeriyor ve reddedildi');
+      throw new Error('Yorum uygunsuz içerik içeriyor ve reddedildi.');
+    }
+    
+    console.log('Yorum içerik kontrolünden geçti, veritabanına ekleniyor');
+    
     const response = await axios.post(`${API_URL}/Reviews`, {
       userID: userId,
       businessID: businessId,
       rating: rating,
       comment: comment
     });
+    
+    console.log('Yorum başarıyla veritabanına eklendi:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error adding business review:', error);
@@ -77,5 +208,7 @@ export const addBusinessReview = async (userId, businessId, rating, comment) => 
 export default {
   getBusinessReviews,
   calculateAverageRating,
-  addBusinessReview
+  addBusinessReview,
+  checkReviewContentWithGemini,
+  evaluateCommentWithGemini
 }; 
