@@ -348,20 +348,6 @@ export default function ProfileScreen({ navigation }) {
               </View>
             </View>
           </View>
-
-          <TouchableOpacity 
-            style={styles.editButton}
-            onPress={() => navigation.navigate('EditProfile', { userData })}
-          >
-            <LinearGradient
-              colors={['#4B63DB', '#8B5CF6']}
-              style={styles.gradientButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.editButtonText}>Edit Profile</Text>
-            </LinearGradient>
-          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
 
