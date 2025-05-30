@@ -151,7 +151,7 @@ export default function LoginScreen({ navigation }) {
         await AsyncStorage.setItem('userData', JSON.stringify(userDataToStore));
 
         // Ana sayfaya yönlendir
-        navigation.replace('MainTabs');
+        navigation.replace('Home');
       } else {
         throw new Error('Login failed');
       }
