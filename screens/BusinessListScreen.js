@@ -73,10 +73,6 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   return distance;
 };
 
-const getWelcomeMessage = () => {
-  return "Quality services you're looking for are at your fingertips 🌟";
-};
-
 const formatHourToTime = (decimalHour) => {
   if (decimalHour === undefined || decimalHour === null) return "";
 
@@ -304,18 +300,6 @@ export default function BusinessListScreen({ route, navigation }) {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View
-            style={[
-              styles.welcomeContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            <Text style={styles.welcomeText}>{getWelcomeMessage()}</Text>
-          </Animated.View>
-
           {currentBusinesses.map((business, index) => (
             <Animated.View
               key={business.businessID || index}
@@ -529,8 +513,12 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   subcategoriesContainer: {
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
   subcategoryCard: {
     marginBottom: 16,
@@ -591,7 +579,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   businessList: {
-    padding: 16,
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   businessCard: {
     borderRadius: 16,
@@ -657,22 +647,6 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.9)",
     marginLeft: 4,
     fontWeight: "500",
-  },
-  welcomeContainer: {
-    marginBottom: 20,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.2)",
-  },
-  welcomeText: {
-    color: "#fff",
-    fontSize: 17,
-    textAlign: "center",
-    lineHeight: 24,
-    fontWeight: "500",
-    letterSpacing: 0.3,
   },
   ratingContainer: {
     flexDirection: 'row',

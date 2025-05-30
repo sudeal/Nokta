@@ -1,10 +1,7 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
 import HomeScreen from "./screens/HomeScreen";
-import BrowseScreen from "./screens/BrowseScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
@@ -17,83 +14,14 @@ import MessagesScreen from "./screens/MessagesScreen";
 import { StyleSheet } from "react-native";
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
-
-function TabNavigator() {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-
-          if (route.name === "Home") {
-            iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "Browse") {
-            iconName = focused ? "compass" : "compass-outline";
-          }
-
-          return <Ionicons name={iconName} size={26} color={color} />;
-        },
-        tabBarActiveTintColor: "#4CC9F0",
-        tabBarInactiveTintColor: "rgba(255, 255, 255, 0.5)",
-        tabBarStyle: {
-          backgroundColor: 'rgba(255, 255, 255, 0.08)',
-          borderTopWidth: 0,
-          elevation: 0,
-          height: 65,
-          paddingBottom: 10,
-          paddingTop: 10,
-          position: 'absolute',
-          bottom: 20,
-          left: 20,
-          right: 20,
-          borderRadius: 20,
-          borderWidth: 1,
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-          shadowColor: "#000",
-          shadowOffset: {
-            width: 0,
-            height: 4,
-          },
-          shadowOpacity: 0.2,
-          shadowRadius: 8,
-        },
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreen}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: '500',
-          },
-        }}
-      />
-      <Tab.Screen 
-        name="Browse" 
-        component={BrowseScreen}
-        options={{
-          tabBarLabel: 'Browse',
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: '500',
-          },
-        }}
-      />
-    </Tab.Navigator>
-  );
-}
 
 export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen
-          name="MainTabs"
-          component={TabNavigator}
+          name="Home"
+          component={HomeScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen name="Login" component={LoginScreen} />

@@ -52,9 +52,15 @@ export default function NewBookingScreen({ navigation }) {
             opacity: animation,
             transform: [
               {
-                translateX: animation.interpolate({
+                translateY: animation.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [-50, 0],
+                  outputRange: [30, 0],
+                }),
+              },
+              {
+                scale: animation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.9, 1],
                 }),
               },
             ],
@@ -114,23 +120,6 @@ export default function NewBookingScreen({ navigation }) {
           <Text style={styles.headerSubtitle}>
             Choose your perfect service and book your appointment now!
           </Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Ionicons name="business-outline" size={24} color="#4CC9F0" />
-              <Text style={styles.statNumber}>50+</Text>
-              <Text style={styles.statLabel}>Businesses</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="star-outline" size={24} color="#4CC9F0" />
-              <Text style={styles.statNumber}>4.8</Text>
-              <Text style={styles.statLabel}>Rating</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="people-outline" size={24} color="#4CC9F0" />
-              <Text style={styles.statNumber}>1000+</Text>
-              <Text style={styles.statLabel}>Happy Clients</Text>
-            </View>
-          </View>
         </View>
         <View style={styles.cardsContainer}>
           {renderCategoryCard(
@@ -167,13 +156,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    justifyContent: 'center',
+    paddingTop: 30,
+    paddingBottom: 30,
+    justifyContent: 'space-between',
+    minHeight: '100%',
   },
   cardsContainer: {
     flex: 1,
-    gap: 12,
-    justifyContent: 'center',
+    gap: 25,
+    justifyContent: 'space-evenly',
+    marginTop: 20,
   },
   cardContainer: {
     width: '100%',
@@ -196,27 +188,28 @@ const styles = StyleSheet.create({
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 120,
+    height: 110,
+    justifyContent: 'space-between',
   },
   leftContent: {
-    marginRight: 20,
+    marginRight: 15,
   },
   rightContent: {
     flex: 1,
   },
   iconContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '700',
     color: '#fff',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -235,45 +228,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   headerContainer: {
-    paddingBottom: 24,
+    paddingBottom: 10,
+    marginBottom: 10,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 8,
+    marginBottom: 10,
     textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 10,
-    marginTop: 10,
-  },
-  statItem: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 12,
-    borderRadius: 12,
-    minWidth: 100,
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#4CC9F0',
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
+    marginBottom: 10,
+    paddingHorizontal: 30,
   },
   disabledDateItem: {
     backgroundColor: '#e0e0e0',
