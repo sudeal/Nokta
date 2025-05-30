@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ScrollView, Linking, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ScrollView, Linking, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getTemplateFeatures, getEnabledFeatures, getTemplateDescription } from './TemplateManager';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -69,38 +69,18 @@ const TemplateFeaturesBadge = ({ templateId, colorScheme, business }) => {
     
     setReviewsLoading(true);
     try {
-      // Temporarily use dummy reviews instead of API calls
-      const dummyReviews = [
-        {
-          userID: 1,
-          businessID: business.businessID,
-          rating: 4.5,
-          comment: "Great place! Very professional service.",
-          createdAt: new Date(Date.now() - 86400000 * 3).toISOString() // 3 days ago
-        },
-        {
-          userID: 2,
-          businessID: business.businessID,
-          rating: 5,
-          comment: "Absolutely love this place. Best service in town!",
-          createdAt: new Date(Date.now() - 86400000 * 10).toISOString() // 10 days ago
-        },
-        {
-          userID: 3,
-          businessID: business.businessID,
-          rating: 4,
-          comment: "Very good experience overall. Will visit again.",
-          createdAt: new Date(Date.now() - 86400000 * 17).toISOString() // 17 days ago
-        }
-      ];
-      
-      setReviews(dummyReviews);
+      // Use the actual API service to fetch reviews
+      const fetchedReviews = await getBusinessReviews(business.businessID);
+      setReviews(fetchedReviews);
       
       // Calculate average rating
-      const avgRating = calculateAverageRating(dummyReviews);
+      const avgRating = calculateAverageRating(fetchedReviews);
       setAverageRating(avgRating);
     } catch (error) {
-      console.error('Error setting dummy reviews:', error);
+      console.error('Error fetching reviews:', error);
+      // Fallback to empty reviews if there's an error
+      setReviews([]);
+      setAverageRating(0);
     } finally {
       setReviewsLoading(false);
     }
@@ -119,13 +99,18 @@ const TemplateFeaturesBadge = ({ templateId, colorScheme, business }) => {
 
     setSubmittingReview(true);
     try {
-      // Create dummy review instead of API call
+      // Use the actual API service to submit the review
+      const userId = 5; // Fixed userID for demo
+      const businessId = business.businessID;
+      const result = await addBusinessReview(userId, businessId, userRating, userComment);
+      
+      // Add the new review to the list
       const newReview = {
-        userID: 5, // Fixed userID for demo
-        businessID: business.businessID,
+        ...result,
+        userID: userId,
+        businessID: businessId,
         rating: userRating,
-        comment: userComment,
-        createdAt: new Date().toISOString()
+        comment: userComment
       };
       
       // Add the new review to the list
@@ -142,7 +127,7 @@ const TemplateFeaturesBadge = ({ templateId, colorScheme, business }) => {
       
       alert('Your review has been submitted!');
     } catch (error) {
-      console.error('Error with dummy review:', error);
+      console.error('Error submitting review:', error);
       alert('Failed to submit review. Please try again.');
     } finally {
       setSubmittingReview(false);
@@ -275,32 +260,50 @@ const TemplateFeaturesBadge = ({ templateId, colorScheme, business }) => {
         transparent={true}
         onRequestClose={() => setShowMessageModal(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Send Message to {business?.name}</Text>
-              <TouchableOpacity onPress={() => setShowMessageModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            
-            <TextInput
-              style={styles.messageInput}
-              placeholder="Type your message here..."
-              value={message}
-              onChangeText={setMessage}
-              multiline
-              numberOfLines={4}
-            />
-            
-            <TouchableOpacity 
-              style={[styles.sendButton, { backgroundColor: colorScheme?.primary || '#4B63DB' }]}
-              onPress={handleSendMessage}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalContainer}
+        >
+          <TouchableOpacity 
+            style={styles.modalBackdrop}
+            activeOpacity={1} 
+            onPress={() => Keyboard.dismiss()}
+          >
+            <ScrollView 
+              contentContainerStyle={styles.modalScrollContainer}
+              keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.sendButtonText}>Send Message</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+              <TouchableOpacity 
+                activeOpacity={1} 
+                onPress={() => {}}
+                style={styles.modalContent}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Send Message to {business?.name}</Text>
+                  <TouchableOpacity onPress={() => setShowMessageModal(false)}>
+                    <Ionicons name="close" size={24} color="#333" />
+                  </TouchableOpacity>
+                </View>
+                
+                <TextInput
+                  style={styles.messageInput}
+                  placeholder="Type your message here..."
+                  value={message}
+                  onChangeText={setMessage}
+                  multiline
+                  numberOfLines={4}
+                />
+                
+                <TouchableOpacity 
+                  style={[styles.sendButton, { backgroundColor: colorScheme?.primary || '#4B63DB' }]}
+                  onPress={handleSendMessage}
+                >
+                  <Text style={styles.sendButtonText}>Send Message</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            </ScrollView>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
       
       {/* Menu Modal */}
@@ -310,28 +313,46 @@ const TemplateFeaturesBadge = ({ templateId, colorScheme, business }) => {
         transparent={true}
         onRequestClose={() => setShowMenuModal(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{business?.name} Menu</Text>
-              <TouchableOpacity onPress={() => setShowMenuModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={styles.menuContainer}>
-              {menuItems.map(item => (
-                <View key={item.id} style={styles.menuItem}>
-                  <View style={styles.menuItemHeader}>
-                    <Text style={styles.menuItemName}>{item.name}</Text>
-                    <Text style={[styles.menuItemPrice, { color: colorScheme?.primary || '#4B63DB' }]}>{item.price}</Text>
-                  </View>
-                  <Text style={styles.menuItemDescription}>{item.description}</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalContainer}
+        >
+          <TouchableOpacity 
+            style={styles.modalBackdrop}
+            activeOpacity={1} 
+            onPress={() => Keyboard.dismiss()}
+          >
+            <ScrollView 
+              contentContainerStyle={styles.modalScrollContainer}
+              keyboardShouldPersistTaps="handled"
+            >
+              <TouchableOpacity 
+                activeOpacity={1} 
+                onPress={() => {}}
+                style={styles.modalContent}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{business?.name} Menu</Text>
+                  <TouchableOpacity onPress={() => setShowMenuModal(false)}>
+                    <Ionicons name="close" size={24} color="#333" />
+                  </TouchableOpacity>
                 </View>
-              ))}
+                
+                <ScrollView style={styles.menuContainer}>
+                  {menuItems.map(item => (
+                    <View key={item.id} style={styles.menuItem}>
+                      <View style={styles.menuItemHeader}>
+                        <Text style={styles.menuItemName}>{item.name}</Text>
+                        <Text style={[styles.menuItemPrice, { color: colorScheme?.primary || '#4B63DB' }]}>{item.price}</Text>
+                      </View>
+                      <Text style={styles.menuItemDescription}>{item.description}</Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              </TouchableOpacity>
             </ScrollView>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
       
       {/* Reviews Modal */}
@@ -341,69 +362,87 @@ const TemplateFeaturesBadge = ({ templateId, colorScheme, business }) => {
         transparent={true}
         onRequestClose={() => setShowReviewsModal(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{business?.name} Reviews</Text>
-              <TouchableOpacity onPress={() => setShowReviewsModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.reviewSummary}>
-              <Text style={styles.averageRating}>
-                {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
-              </Text>
-              {renderStars(averageRating, 24)}
-              <Text style={styles.reviewCount}>
-                Based on {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
-              </Text>
-            </View>
-            
-            <TouchableOpacity 
-              style={[styles.addReviewButton, { backgroundColor: colorScheme?.primary || '#4B63DB' }]}
-              onPress={() => setShowAddReviewModal(true)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalContainer}
+        >
+          <TouchableOpacity 
+            style={styles.modalBackdrop}
+            activeOpacity={1} 
+            onPress={() => Keyboard.dismiss()}
+          >
+            <ScrollView 
+              contentContainerStyle={styles.modalScrollContainer}
+              keyboardShouldPersistTaps="handled"
             >
-              <Ionicons name="create-outline" size={18} color="#fff" />
-              <Text style={styles.addReviewText}>Write a Review</Text>
-            </TouchableOpacity>
-            
-            {reviewsLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colorScheme?.primary || '#4B63DB'} />
-              </View>
-            ) : reviews.length > 0 ? (
-              <FlatList
-                data={reviews}
-                keyExtractor={(item, index) => `review-${index}`}
-                renderItem={({ item, index }) => (
-                  <View style={styles.reviewItem}>
-                    <View style={styles.reviewItemHeader}>
-                      <View style={styles.userInfo}>
-                        <View style={[styles.userAvatar, { backgroundColor: colorScheme?.primary || '#4B63DB' }]}>
-                          <Text style={styles.userInitial}>
-                            {String.fromCharCode(65 + index % 26)}
+              <TouchableOpacity 
+                activeOpacity={1} 
+                onPress={() => {}}
+                style={styles.modalContent}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>{business?.name} Reviews</Text>
+                  <TouchableOpacity onPress={() => setShowReviewsModal(false)}>
+                    <Ionicons name="close" size={24} color="#333" />
+                  </TouchableOpacity>
+                </View>
+                
+                <View style={styles.reviewSummary}>
+                  <Text style={styles.averageRating}>
+                    {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
+                  </Text>
+                  {renderStars(averageRating, 24)}
+                  <Text style={styles.reviewCount}>
+                    Based on {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+                  </Text>
+                </View>
+                
+                <TouchableOpacity 
+                  style={[styles.addReviewButton, { backgroundColor: colorScheme?.primary || '#4B63DB' }]}
+                  onPress={() => setShowAddReviewModal(true)}
+                >
+                  <Ionicons name="create-outline" size={18} color="#fff" />
+                  <Text style={styles.addReviewText}>Write a Review</Text>
+                </TouchableOpacity>
+                
+                {reviewsLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colorScheme?.primary || '#4B63DB'} />
+                  </View>
+                ) : reviews.length > 0 ? (
+                  <FlatList
+                    data={reviews}
+                    keyExtractor={(item, index) => `review-${index}`}
+                    renderItem={({ item, index }) => (
+                      <View style={styles.reviewItem}>
+                        <View style={styles.reviewItemHeader}>
+                          <View style={styles.userInfo}>
+                            <View style={[styles.userAvatar, { backgroundColor: colorScheme?.primary || '#4B63DB' }]}>
+                              <Text style={styles.userInitial}>
+                                {String.fromCharCode(65 + index % 26)}
+                              </Text>
+                            </View>
+                            <Text style={styles.userName}>User {item.userID}</Text>
+                          </View>
+                          <Text style={styles.reviewDate}>
+                            {formatReviewDate(item.createdAt)}
                           </Text>
                         </View>
-                        <Text style={styles.userName}>User {item.userID}</Text>
+                        {renderStars(item.rating)}
+                        <Text style={styles.reviewComment}>{item.comment}</Text>
                       </View>
-                      <Text style={styles.reviewDate}>
-                        {formatReviewDate(item.createdAt)}
-                      </Text>
-                    </View>
-                    {renderStars(item.rating)}
-                    <Text style={styles.reviewComment}>{item.comment}</Text>
-                  </View>
+                    )}
+                    style={styles.reviewsList}
+                  />
+                ) : (
+                  <Text style={styles.noReviewsText}>
+                    No reviews yet. Be the first to review!
+                  </Text>
                 )}
-                style={styles.reviewsList}
-              />
-            ) : (
-              <Text style={styles.noReviewsText}>
-                No reviews yet. Be the first to review!
-              </Text>
-            )}
-          </View>
-        </View>
+              </TouchableOpacity>
+            </ScrollView>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
       
       {/* Add Review Modal */}
@@ -413,47 +452,65 @@ const TemplateFeaturesBadge = ({ templateId, colorScheme, business }) => {
         transparent={true}
         onRequestClose={() => setShowAddReviewModal(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Write a Review</Text>
-              <TouchableOpacity onPress={() => setShowAddReviewModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
-            </View>
-            
-            <Text style={styles.ratingLabel}>Your Rating</Text>
-            <View style={styles.ratingStars}>
-              {renderStars(5, 32, true)}
-            </View>
-            
-            <Text style={styles.commentLabel}>Your Review</Text>
-            <TextInput
-              style={styles.commentInput}
-              placeholder="Share your experience..."
-              value={userComment}
-              onChangeText={setUserComment}
-              multiline
-              numberOfLines={4}
-            />
-            
-            <TouchableOpacity 
-              style={[
-                styles.submitButton, 
-                { backgroundColor: colorScheme?.primary || '#4B63DB' },
-                submittingReview && { opacity: 0.7 }
-              ]}
-              onPress={handleSubmitReview}
-              disabled={submittingReview}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalContainer}
+        >
+          <TouchableOpacity 
+            style={styles.modalBackdrop}
+            activeOpacity={1} 
+            onPress={() => Keyboard.dismiss()}
+          >
+            <ScrollView 
+              contentContainerStyle={styles.modalScrollContainer}
+              keyboardShouldPersistTaps="handled"
             >
-              {submittingReview ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.submitButtonText}>Submit Review</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
+              <TouchableOpacity 
+                activeOpacity={1} 
+                onPress={() => {}}
+                style={styles.modalContent}
+              >
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Write a Review</Text>
+                  <TouchableOpacity onPress={() => setShowAddReviewModal(false)}>
+                    <Ionicons name="close" size={24} color="#333" />
+                  </TouchableOpacity>
+                </View>
+                
+                <Text style={styles.ratingLabel}>Your Rating</Text>
+                <View style={styles.ratingStars}>
+                  {renderStars(5, 32, true)}
+                </View>
+                
+                <Text style={styles.commentLabel}>Your Review</Text>
+                <TextInput
+                  style={styles.commentInput}
+                  placeholder="Share your experience..."
+                  value={userComment}
+                  onChangeText={setUserComment}
+                  multiline
+                  numberOfLines={4}
+                />
+                
+                <TouchableOpacity 
+                  style={[
+                    styles.submitButton, 
+                    { backgroundColor: colorScheme?.primary || '#4B63DB' },
+                    submittingReview && { opacity: 0.7 }
+                  ]}
+                  onPress={handleSubmitReview}
+                  disabled={submittingReview}
+                >
+                  {submittingReview ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Submit Review</Text>
+                  )}
+                </TouchableOpacity>
+              </TouchableOpacity>
+            </ScrollView>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -504,6 +561,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     padding: 20,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  modalScrollContainer: {
+    padding: 20,
+    width: '100%',
   },
   modalContent: {
     backgroundColor: '#fff',
@@ -511,7 +583,6 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '100%',
     maxWidth: 500,
-    maxHeight: '80%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,

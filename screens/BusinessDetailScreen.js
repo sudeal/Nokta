@@ -16,6 +16,8 @@ import {
   ActivityIndicator,
   TextInput,
   FlatList,
+  KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
@@ -404,21 +406,21 @@ export default function BusinessDetailScreen({ route, navigation }) {
       case "health care":
       case "doctor":
       case "medical":
-        return "local-hospital";
+        return "medkit";
       case "dentist":
-        return "local-hospital";
+        return "medkit";
       case "vet":
       case "veterinary":
         return "paw";
       case "barber":
       case "male hair salon":
-        return "content-cut";
+        return "cut";
       case "hair salon":
       case "female hair salon":
-        return "content-cut";
+        return "cut";
       case "nail salon":
       case "nail studio":
-        return "hand-left";
+        return "hand-right";
       case "tattoo":
       case "piercing":
         return "brush";
@@ -631,38 +633,18 @@ export default function BusinessDetailScreen({ route, navigation }) {
     
     setReviewsLoading(true);
     try {
-      // Temporarily use dummy reviews instead of API calls
-      const dummyReviews = [
-        {
-          userID: 1,
-          businessID: business.businessID,
-          rating: 4.5,
-          comment: "Excellent service and friendly staff!",
-          createdAt: new Date(Date.now() - 86400000 * 7).toISOString() // 7 days ago
-        },
-        {
-          userID: 2,
-          businessID: business.businessID,
-          rating: 5,
-          comment: "Amazing experience. Would definitely recommend!",
-          createdAt: new Date(Date.now() - 86400000 * 14).toISOString() // 14 days ago
-        },
-        {
-          userID: 3,
-          businessID: business.businessID,
-          rating: 4,
-          comment: "Good quality service but a bit pricey.",
-          createdAt: new Date(Date.now() - 86400000 * 21).toISOString() // 21 days ago
-        }
-      ];
-      
-      setReviews(dummyReviews);
+      // Use the actual API service to fetch reviews
+      const fetchedReviews = await getBusinessReviews(business.businessID);
+      setReviews(fetchedReviews);
       
       // Calculate average rating
-      const avgRating = calculateAverageRating(dummyReviews);
+      const avgRating = calculateAverageRating(fetchedReviews);
       setAverageRating(avgRating);
     } catch (error) {
-      console.error('Error setting dummy reviews:', error);
+      console.error('Error fetching reviews:', error);
+      // Fallback to empty reviews if there's an error
+      setReviews([]);
+      setAverageRating(0);
     } finally {
       setReviewsLoading(false);
     }
@@ -681,16 +663,20 @@ export default function BusinessDetailScreen({ route, navigation }) {
 
     setSubmittingReview(true);
     try {
-      // Create dummy review instead of API call
-      const newReview = {
-        userID: 5, // Fixed userID for demo
-        businessID: business.businessID,
-        rating: userRating,
-        comment: userComment,
-        createdAt: new Date().toISOString()
-      };
+      // Use the actual API service to submit the review
+      const userId = 5; // Fixed userID for demo
+      const businessId = business.businessID;
+      const result = await addBusinessReview(userId, businessId, userRating, userComment);
       
       // Add the new review to the list
+      const newReview = {
+        ...result,
+        userID: userId,
+        businessID: businessId,
+        rating: userRating,
+        comment: userComment
+      };
+      
       setReviews([...reviews, newReview]);
       
       // Recalculate average rating
@@ -704,7 +690,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
       
       Alert.alert('Success', 'Your review has been submitted!');
     } catch (error) {
-      console.error('Error with dummy review:', error);
+      console.error('Error submitting review:', error);
       Alert.alert('Error', 'Failed to submit review. Please try again.');
     } finally {
       setSubmittingReview(false);
@@ -1048,47 +1034,65 @@ export default function BusinessDetailScreen({ route, navigation }) {
           transparent={true}
           onRequestClose={() => setShowReviewModal(false)}
         >
-          <View style={styles.reviewModalContainer}>
-            <View style={styles.reviewModalContent}>
-              <View style={styles.reviewModalHeader}>
-                <Text style={styles.reviewModalTitle}>Write a Review</Text>
-                <TouchableOpacity onPress={() => setShowReviewModal(false)}>
-                  <Ionicons name="close" size={24} color="#333" />
-                </TouchableOpacity>
-              </View>
-              
-              <Text style={styles.ratingLabel}>Your Rating</Text>
-              <View style={styles.ratingStars}>
-                {renderStars(5, 32, true)}
-              </View>
-              
-              <Text style={styles.commentLabel}>Your Review</Text>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Share your experience..."
-                value={userComment}
-                onChangeText={setUserComment}
-                multiline
-                numberOfLines={4}
-              />
-              
-              <TouchableOpacity 
-                style={[
-                  styles.submitReviewButton, 
-                  { backgroundColor: colorScheme.primary },
-                  submittingReview && { opacity: 0.7 }
-                ]}
-                onPress={handleSubmitReview}
-                disabled={submittingReview}
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.reviewModalContainer}
+          >
+            <TouchableOpacity 
+              style={styles.reviewModalBackdrop}
+              activeOpacity={1} 
+              onPress={() => Keyboard.dismiss()}
+            >
+              <ScrollView 
+                contentContainerStyle={styles.reviewModalScrollContainer}
+                keyboardShouldPersistTaps="handled"
               >
-                {submittingReview ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.submitReviewText}>Submit Review</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
+                <TouchableOpacity 
+                  activeOpacity={1} 
+                  onPress={() => {}}
+                  style={styles.reviewModalContent}
+                >
+                  <View style={styles.reviewModalHeader}>
+                    <Text style={styles.reviewModalTitle}>Write a Review</Text>
+                    <TouchableOpacity onPress={() => setShowReviewModal(false)}>
+                      <Ionicons name="close" size={24} color="#333" />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <Text style={styles.ratingLabel}>Your Rating</Text>
+                  <View style={styles.ratingStars}>
+                    {renderStars(5, 32, true)}
+                  </View>
+                  
+                  <Text style={styles.commentLabel}>Your Review</Text>
+                  <TextInput
+                    style={styles.commentInput}
+                    placeholder="Share your experience..."
+                    value={userComment}
+                    onChangeText={setUserComment}
+                    multiline
+                    numberOfLines={4}
+                  />
+                  
+                  <TouchableOpacity 
+                    style={[
+                      styles.submitReviewButton, 
+                      { backgroundColor: colorScheme.primary },
+                      submittingReview && { opacity: 0.7 }
+                    ]}
+                    onPress={handleSubmitReview}
+                    disabled={submittingReview}
+                  >
+                    {submittingReview ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.submitReviewText}>Submit Review</Text>
+                    )}
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              </ScrollView>
+            </TouchableOpacity>
+          </KeyboardAvoidingView>
         </Modal>
       </SafeAreaView>
     </LinearGradient>
@@ -1494,6 +1498,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 20,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  reviewModalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  reviewModalScrollContainer: {
     padding: 20,
   },
   reviewModalContent: {
