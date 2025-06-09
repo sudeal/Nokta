@@ -11,6 +11,7 @@ namespace Nokta_API
         public DbSet<Business> Businesses { get; set; } = null!;
         public DbSet<Appointment> Appointments { get; set; } = null!;
         public DbSet<Review> Reviews { get; set; } = null!;
+        public DbSet<Message> Messages { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -88,6 +89,24 @@ namespace Nokta_API
                       .OnDelete(DeleteBehavior.Cascade);
                 entity.HasCheckConstraint("CK_Reviews_Rating", "Rating BETWEEN 1 AND 5");
             });
+
+            // Messages configuration
+            modelBuilder.Entity<Message>(entity =>
+            {
+                entity.HasKey(e => e.MessageID);
+                entity.Property(e => e.Content)
+                    .IsRequired()
+                    .HasColumnName("Message");
+                entity.Property(e => e.Date).HasDefaultValueSql("GETDATE()");
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserID)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Business)
+                      .WithMany()
+                      .HasForeignKey(e => e.BusinessID)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 
@@ -146,6 +165,17 @@ namespace Nokta_API
         public float Rating { get; set; }
         public string Comment { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public User User { get; set; } = null!;
+        public Business Business { get; set; } = null!;
+    }
+
+    public class Message
+    {
+        public int MessageID { get; set; }
+        public int UserID { get; set; }
+        public int BusinessID { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
         public User User { get; set; } = null!;
         public Business Business { get; set; } = null!;
     }

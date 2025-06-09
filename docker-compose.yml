@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: nokta-sqlserver
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: YourStrong@Passw0rd
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - nokta-network
+
+  # .NET API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nokta-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=nokta-db;User ID=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;
+    ports:
+      - "5000:8080"
+    depends_on:
+      - sqlserver
+    networks:
+      - nokta-network
+    volumes:
+      - ./appsettings.Docker.json:/app/appsettings.Docker.json:ro
+
+volumes:
+  sqlserver_data:
+
+networks:
+  nokta-network:
+    driver: bridge 
