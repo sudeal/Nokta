@@ -10,11 +10,12 @@ import {
   FlatList,
   Image,
   ActivityIndicator,
-  Alert
+  Alert,
+  RefreshControl
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { getMessages } from '../services/MessageService';
+import { getConversationList } from '../services/MessageService';
 import { getCurrentUser } from '../services/UserService';
 
 // Geçici mesaj verileri
@@ -65,11 +66,18 @@ export default function MessagesScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     loadMessages();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadMessages();
+    setRefreshing(false);
+  };
 
   const loadMessages = async () => {
     try {
@@ -83,13 +91,15 @@ export default function MessagesScreen({ navigation }) {
       
       setCurrentUser(user);
       
-      // Get messages from API
-      const userMessages = await getMessages(user.userID);
-      setMessages(userMessages || dummyMessages); // Fallback to dummy data if API fails
+      // Get conversation list from API
+      const conversations = await getConversationList(user.userID);
+      console.log('Loaded conversations:', conversations);
+      setMessages(conversations || []); // Use real conversations or empty array
     } catch (error) {
       console.error('Error loading messages:', error);
-      // Use dummy data as fallback
+      // Use dummy data as fallback only if API completely fails
       setMessages(dummyMessages);
+      Alert.alert('Info', 'Using sample data. Please check your internet connection.');
     } finally {
       setLoading(false);
     }
@@ -113,7 +123,18 @@ export default function MessagesScreen({ navigation }) {
   const renderMessageItem = ({ item }) => (
     <TouchableOpacity
       style={styles.messageItem}
-      onPress={() => navigation.navigate('ChatDetail', { business: item })}
+      onPress={() => navigation.navigate('BusinessDetail', { 
+        business: {
+          businessID: item.businessID,
+          name: item.businessName,
+          businessName: item.businessName,
+          // Add mock data for required fields
+          category: 'Restaurant',
+          address: 'Address not available',
+          contactNumber: 'Phone not available',
+          description: 'Description not available'
+        }
+      })}
     >
       <View style={styles.avatarContainer}>
         <Text style={styles.avatarText}>{getInitials(item.businessName)}</Text>
@@ -175,6 +196,9 @@ export default function MessagesScreen({ navigation }) {
             renderItem={renderMessageItem}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.messagesList}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            showsVerticalScrollIndicator={false}
           />
         ) : (
           <View style={styles.emptyContainer}>
