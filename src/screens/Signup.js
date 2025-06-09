@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const SignupStep1 = ({ onNext }) => {
   const [formData, setFormData] = useState({
@@ -209,6 +210,7 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
 };
 
 const SignupStep3 = ({ formData, onSuccess }) => {
+  const navigate = useNavigate();
   const [additionalData, setAdditionalData] = useState({
     hasMessaging: true,
     hasStatistics: true,
@@ -273,7 +275,7 @@ const SignupStep3 = ({ formData, onSuccess }) => {
       alert("Registration successful!");
       console.log("Response:", result);
 
-      onSuccess();
+      navigate("/");
     } catch (err) {
       console.error("Fetch Error:", err);
       alert(
