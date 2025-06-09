@@ -124,7 +124,17 @@ const SignupStep1 = ({ onNext }) => {
 };
 
 const SignupStep2 = ({ onNext, formData, handleChange }) => {
-  const categories = ["Health Care", "Personal Care", "Food & Beverage"];
+  const categories = [
+    "Health Care",
+    "Personal Care",
+    "Food & Beverage"
+  ];
+
+  const subcategories = {
+    "Health Care": ["Dentist", "Vet", "Doctor"],
+    "Personal Care": ["Tattoo & Piercing", "Nail Studio", "Female Coiffure", "Male Coiffure"],
+    "Food & Beverage": ["Pub & Bar", "Fine Dining", "Dessert", "Restaurant"]
+  };
 
   const handleNext = (e) => {
     e.preventDefault();
@@ -179,6 +189,28 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
           </select>
         </label>
       </div>
+      {formData.category && (
+        <div>
+          <label>
+            Subcategory:
+            <select
+              name="subcategory"
+              value={formData.subcategory || ""}
+              onChange={handleChange}
+              required
+            >
+              <option value="" disabled>
+                Select a subcategory
+              </option>
+              {subcategories[formData.category].map((subcat) => (
+                <option key={subcat} value={subcat}>
+                  {subcat}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
       <div>
         <label>
           Address:
@@ -235,10 +267,15 @@ const SignupStep3 = ({ formData, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const businessName = formData.subcategory
+      ? `${formData.subcategory} - ${formData.name}`
+      : formData.name;
+
     const requestData = {
-      name: formData.name,
+      name: businessName,
       ownerName: formData.ownerName,
       category: formData.category,
+      subcategory: formData.subcategory,
       address: formData.address,
       description: formData.description,
       email: formData.email,
@@ -357,6 +394,7 @@ const Signup = () => {
     name: "",
     ownerName: "",
     category: "",
+    subcategory: "",
     address: "",
     description: "",
     email: "",
