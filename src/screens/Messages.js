@@ -1,265 +1,249 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 const Messages = () => {
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  
-  const messages = [
-    {
-      id: 1,
-      customer: "Ahmet Yılmaz",
-      preview: "Merhaba, siparişim hakkında bilgi alabilir miyim?",
-      time: "10:30",
-      date: "Bugün",
-      unread: true,
-      avatar: "AY"
-    },
-    {
-      id: 2,
-      customer: "Ayşe Demir",
-      preview: "Teşekkürler, çok memnun kaldım hizmetinizden.",
-      time: "09:15",
-      date: "Bugün",
-      unread: false,
-      avatar: "AD"
-    },
-    {
-      id: 3,
-      customer: "Mehmet Kaya",
-      preview: "İade işlemi nasıl yapabilirim?",
-      time: "16:45",
-      date: "Dün",
-      unread: true,
-      avatar: "MK"
-    },
-    {
-      id: 4,
-      customer: "Fatma Öztürk",
-      preview: "Çok güzel ürünler, tekrar sipariş vereceğim.",
-      time: "14:20",
-      date: "Dün",
-      unread: false,
-      avatar: "FÖ"
-    },
-    {
-      id: 5,
-      customer: "Ali Şahin",
-      preview: "Kargo ne zaman gelir acaba?",
-      time: "11:30",
-      date: "2 gün önce",
-      unread: true,
-      avatar: "AŞ"
-    }
-  ];
+  const [allMessages, setAllMessages] = useState([]); // Tüm mesajlar (business endpointinden)
+  const [conversations, setConversations] = useState([]); // Her user için son mesaj
+  const [selectedUser, setSelectedUser] = useState(null); // Seçili userID
+  const [messages, setMessages] = useState([]); // Seçili user ile tüm mesajlar
+  const [messageInput, setMessageInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
+  const [replyToMessageID, setReplyToMessageID] = useState(null);
+  const [replyInput, setReplyInput] = useState("");
 
-  const styles = {
-    container: {
-      backgroundColor: 'rgba(28, 32, 55, 0.95)',
-      borderRadius: '12px',
-      padding: '0',
-      margin: '20px',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-      overflow: 'hidden',
-      minHeight: '600px'
-    },
-    header: {
-      background: 'linear-gradient(135deg, #3f51b5 0%, #2196f3 100%)',
-      color: 'white',
-      padding: '24px 30px',
-      borderBottom: 'none',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    },
-    title: {
-      fontSize: '28px',
-      fontWeight: '600',
-      margin: '0',
-      letterSpacing: '-0.5px'
-    },
-    badge: {
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      color: 'white',
-      padding: '6px 12px',
-      borderRadius: '20px',
-      fontSize: '14px',
-      fontWeight: '500'
-    },
-    messagesList: {
-      padding: '0',
-      maxHeight: '500px',
-      overflowY: 'auto'
-    },
-    messageItem: {
-      backgroundColor: selectedMessage ? 'rgba(63, 81, 181, 0.1)' : 'transparent',
-      padding: '20px 30px',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px'
-    },
-    messageItemHover: {
-      backgroundColor: 'rgba(63, 81, 181, 0.08)'
-    },
-    avatar: {
-      width: '48px',
-      height: '48px',
-      borderRadius: '50%',
-      backgroundColor: '#3f51b5',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: 'white',
-      fontWeight: '600',
-      fontSize: '16px',
-      flexShrink: 0
-    },
-    messageContent: {
-      flex: 1,
-      minWidth: 0
-    },
-    customerName: {
-      color: 'white',
-      fontSize: '16px',
-      fontWeight: '600',
-      marginBottom: '4px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
-    preview: {
-      color: 'rgba(255, 255, 255, 0.7)',
-      fontSize: '14px',
-      lineHeight: '1.4',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    },
-    messageTime: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'flex-end',
-      gap: '4px',
-      flexShrink: 0
-    },
-    time: {
-      fontSize: '12px',
-      color: 'rgba(255, 255, 255, 0.5)'
-    },
-    date: {
-      fontSize: '11px',
-      color: 'rgba(255, 255, 255, 0.4)'
-    },
-    unreadBadge: {
-      width: '8px',
-      height: '8px',
-      backgroundColor: '#4caf50',
-      borderRadius: '50%',
-      marginLeft: '8px'
-    },
-    searchContainer: {
-      padding: '20px 30px',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-    },
-    searchInput: {
-      width: '100%',
-      padding: '12px 16px',
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '8px',
-      color: 'white',
-      fontSize: '14px',
-      outline: 'none',
-      transition: 'all 0.3s ease'
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: '60px 30px',
-      color: 'rgba(255, 255, 255, 0.5)'
+  // Aktif businessID'yi localStorage'dan al
+  const userData = JSON.parse(localStorage.getItem("userData"));
+  const businessID = userData?.businessID || userData?.id;
+
+  // 1. Tüm mesajları çek (her userdan gelenler dahil)
+  useEffect(() => {
+    if (!businessID) return;
+    setLoading(true);
+    fetch(`https://nokta-appservice.azurewebsites.net/api/Messages/business/${businessID}`)
+      .then(res => res.json())
+      .then(data => {
+        setAllMessages(data);
+        // Her user için en güncel mesajı bul
+        const latestByUser = {};
+        data.forEach(msg => {
+          if (!latestByUser[msg.userID] || new Date(msg.date) > new Date(latestByUser[msg.userID].date)) {
+            latestByUser[msg.userID] = msg;
+          }
+        });
+        // Tarihe göre azalan sırala
+        const convArr = Object.values(latestByUser).sort((a, b) => new Date(b.date) - new Date(a.date));
+        setConversations(convArr);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError("Gelen mesajlar yüklenemedi.");
+        setLoading(false);
+      });
+  }, [businessID]);
+
+  // 2. Bir user seçilince, o user ile olan tüm mesajları çek
+  useEffect(() => {
+    if (!selectedUser || !businessID) return;
+    setLoading(true);
+    fetch(`https://nokta-appservice.azurewebsites.net/api/Messages/conversation/${selectedUser}/${businessID}`)
+      .then(res => res.json())
+      .then(data => {
+        setMessages(data.messages || []);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError("Mesajlar yüklenemedi.");
+        setLoading(false);
+      });
+  }, [selectedUser, businessID]);
+
+  // 3. Mesaj gönder
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!messageInput.trim() || !selectedUser) return;
+    setSending(true);
+    try {
+      const res = await fetch("https://nokta-appservice.azurewebsites.net/api/Messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userID: selectedUser,
+          businessID,
+          content: messageInput.trim(),
+        })
+      });
+      const result = await res.json();
+      if (!res.ok) {
+        alert('Mesaj gönderilemedi: ' + (result?.message || res.status));
+        throw new Error("Mesaj gönderilemedi");
+      }
+      setMessageInput("");
+      // Mesajı tekrar çek
+      fetch(`https://nokta-appservice.azurewebsites.net/api/Messages/conversation/${selectedUser}/${businessID}`)
+        .then(res => res.json())
+        .then(data => setMessages(data.messages || []));
+    } catch (err) {
+      alert('Mesaj gönderilemedi: ' + err.message);
+      setError("Mesaj gönderilemedi.");
+    } finally {
+      setSending(false);
     }
   };
 
+  // 4. Mesaj sil (sadece business'ın kendi mesajları için)
+  const handleDelete = async (messageID) => {
+    if (!window.confirm("Mesajı silmek istediğinize emin misiniz?")) return;
+    try {
+      const res = await fetch(`https://nokta-appservice.azurewebsites.net/api/Messages/${messageID}`, {
+        method: "DELETE"
+      });
+      if (!res.ok) throw new Error("Mesaj silinemedi");
+      setMessages(prev => prev.filter(m => m.messageID !== messageID));
+    } catch (err) {
+      setError("Mesaj silinemedi.");
+    }
+  };
+
+  // Otomatik scroll-to-bottom
+  const messagesEndRef = useRef(null);
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  // UI
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>Mesajlar</h1>
-        <div style={styles.badge}>
-          {messages.filter(m => m.unread).length} Okunmamış
-        </div>
-      </div>
-
-      {/* Search */}
-      <div style={styles.searchContainer}>
-        <input
-          type="text"
-          placeholder="Mesajlarda ara..."
-          style={styles.searchInput}
-          onFocus={(e) => {
-            e.target.style.borderColor = '#3f51b5';
-            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-          }}
-        />
-      </div>
-
-      {/* Messages List */}
-      <div style={styles.messagesList}>
-        {messages.map((message) => (
-          <div
-            key={message.id}
+    <div style={{ display: 'flex', height: '80vh', background: '#23284a', borderRadius: 12, overflow: 'hidden' }}>
+      {/* Sol: Userlardan gelen son mesajlar */}
+      <div style={{ width: 320, background: '#1c2037', borderRight: '1px solid #2d3257', overflowY: 'auto' }}>
+        <div style={{ padding: 24, borderBottom: '1px solid #2d3257', color: 'white', fontWeight: 600, fontSize: 22 }}>Gelen Mesajlar</div>
+        {loading && <div style={{ color: 'white', padding: 24 }}>Yükleniyor...</div>}
+        {conversations.length === 0 && !loading && <div style={{ color: '#aaa', padding: 24 }}>Henüz mesaj yok.</div>}
+        {conversations.map(conv => (
+          <div key={conv.userID} onClick={() => setSelectedUser(conv.userID)}
             style={{
-              ...styles.messageItem,
-              backgroundColor: selectedMessage === message.id 
-                ? 'rgba(63, 81, 181, 0.1)' 
-                : 'transparent'
-            }}
-            onClick={() => setSelectedMessage(message.id)}
-            onMouseEnter={(e) => {
-              if (selectedMessage !== message.id) {
-                e.target.style.backgroundColor = 'rgba(63, 81, 181, 0.05)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (selectedMessage !== message.id) {
-                e.target.style.backgroundColor = 'transparent';
-              }
-            }}
-          >
-            <div style={styles.avatar}>
-              {message.avatar}
-            </div>
-            
-            <div style={styles.messageContent}>
-              <div style={styles.customerName}>
-                {message.customer}
-                {message.unread && <div style={styles.unreadBadge}></div>}
-              </div>
-              <div style={styles.preview}>
-                {message.preview}
-              </div>
-            </div>
-            
-            <div style={styles.messageTime}>
-              <div style={styles.time}>{message.time}</div>
-              <div style={styles.date}>{message.date}</div>
-            </div>
+              padding: 18,
+              cursor: 'pointer',
+              background: selectedUser === conv.userID ? '#2d3257' : 'transparent',
+              borderBottom: '1px solid #23284a',
+              color: 'white',
+              fontWeight: 500
+            }}>
+            <div style={{ fontSize: 16 }}>{conv.userName}</div>
+            <div style={{ fontSize: 13, color: '#aaa', marginTop: 4 }}>{conv.content}</div>
+            <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{conv.date && new Date(conv.date).toLocaleString()}</div>
           </div>
         ))}
       </div>
-
-      {/* Empty State (if no messages) */}
-      {messages.length === 0 && (
-        <div style={styles.emptyState}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>💬</div>
-          <div style={{ fontSize: '18px', marginBottom: '8px' }}>Henüz mesaj yok</div>
-          <div style={{ fontSize: '14px' }}>Müşterilerden gelen mesajlar burada görünecek</div>
-        </div>
-      )}
+      {/* Sağ: Seçili user ile mesaj geçmişi ve cevap yazma alanı */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#23284a' }}>
+        {selectedUser ? (
+          <>
+            <div style={{ padding: 18, borderBottom: '1px solid #2d3257', color: 'white', fontWeight: 600, fontSize: 18 }}>
+              {conversations.find(c => c.userID === selectedUser)?.userName || 'Kullanıcı'} ile Mesajlar
+            </div>
+            {/* Mesaj geçmişi - sadece kaydırılabilir, ekstra buton yok */}
+            <div ref={messagesEndRef} style={{
+              overflowY: 'auto',
+              height: 400,
+              minHeight: 200,
+              padding: 24,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              justifyContent: 'flex-end',
+              maxWidth: 600,
+              margin: '0 auto',
+              background: 'transparent'
+            }}>
+              {loading ? <div style={{ color: 'white' }}>Yükleniyor...</div> :
+                messages.length === 0 ? <div style={{ color: '#aaa' }}>Henüz mesaj yok.</div> :
+                  messages.map(msg => {
+                    const isUser = msg.userID === selectedUser;
+                    const isBusiness = msg.businessID === businessID && !isUser;
+                    return (
+                      <div key={msg.messageID} style={{
+                        display: 'flex',
+                        flexDirection: isBusiness ? 'row-reverse' : 'row',
+                        alignItems: 'flex-end',
+                        marginBottom: 2
+                      }}>
+                        <div style={{
+                          background: isBusiness ? '#3f51b5' : '#2d3257',
+                          color: 'white',
+                          padding: '12px 18px',
+                          borderRadius: isBusiness ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                          maxWidth: '70%',
+                          minWidth: 60,
+                          fontSize: 15,
+                          marginLeft: isBusiness ? 40 : 0,
+                          marginRight: isBusiness ? 0 : 40,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                          wordBreak: 'break-word',
+                          marginTop: 2
+                        }}>
+                          {msg.content}
+                          <div style={{ fontSize: 11, color: '#bbb', marginTop: 6, textAlign: isBusiness ? 'right' : 'left' }}>{new Date(msg.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+            </div>
+            {/* Mesaj yazma alanı - ortalanmış ve modern */}
+            <div style={{ borderTop: '1px solid #2d3257', background: '#23284a', padding: 24, display: 'flex', justifyContent: 'center' }}>
+              <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 500 }}>
+                <textarea
+                  value={messageInput}
+                  onChange={e => setMessageInput(e.target.value)}
+                  placeholder="Mesaj ekle"
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    borderRadius: 10,
+                    border: '1px solid #bbb',
+                    padding: 12,
+                    fontSize: 15,
+                    resize: 'vertical',
+                    background: '#fff',
+                    color: '#23284a',
+                    minHeight: 60,
+                    maxHeight: 120,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                  }}
+                  disabled={sending}
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !messageInput.trim()}
+                  style={{
+                    marginTop: 0,
+                    padding: '8px 28px',
+                    borderRadius: 18,
+                    background: 'linear-gradient(90deg, #4776E6 0%, #8E54E9 100%)',
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 600,
+                    fontSize: 15,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(71, 118, 230, 0.15)',
+                    alignSelf: 'center',
+                    minWidth: 90
+                  }}
+                >
+                  Gönder
+                </button>
+              </form>
+            </div>
+          </>
+        ) : (
+          <div style={{ color: '#aaa', padding: 48, textAlign: 'center', fontSize: 18 }}>
+            Bir kullanıcı seçerek mesajları görüntüleyin.
+          </div>
+        )}
+      </div>
     </div>
   );
 };
