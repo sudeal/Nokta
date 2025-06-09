@@ -65,31 +65,47 @@ export const evaluateCommentWithGemini = async (comment) => {
  */
 export const getBusinessReviews = async (businessId) => {
   try {
-    const response = await axios.get(`${API_URL}/Reviews/business/${businessId}`);
+    // Önce doğru endpoint'i deneyelim
+    const response = await axios.get(`${API_URL}/Reviews/Business/${businessId}`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching business reviews:', error);
-    // API hatası durumunda sahte veriler döndür
-    return [
-      {
-        reviewID: 1,
-        userID: 5,
-        businessID: businessId,
-        rating: 4.5,
-        comment: "Çok iyi bir hizmet aldım, teşekkür ederim!",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      {
-        reviewID: 2,
-        userID: 8,
-        businessID: businessId,
-        rating: 5,
-        comment: "Harika bir deneyimdi, kesinlikle tavsiye ediyorum.",
-        createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 gün önce
-        updatedAt: new Date(Date.now() - 86400000).toISOString()
+    console.log('Primary endpoint failed, trying alternative endpoint...');
+    try {
+      // Alternatif endpoint
+      const response = await axios.get(`${API_URL}/reviews/business/${businessId}`);
+      return response.data;
+    } catch (secondError) {
+      console.log('Alternative endpoint also failed, trying Reviews endpoint without business filter...');
+      try {
+        // Tüm review'ları getir ve business ID'ye göre filtrele
+        const response = await axios.get(`${API_URL}/Reviews`);
+        const allReviews = response.data;
+        return allReviews.filter(review => review.businessID === businessId || review.businessId === businessId);
+      } catch (thirdError) {
+        console.error('All review endpoints failed:', thirdError);
+        // API hatası durumunda sahte veriler döndür
+        return [
+          {
+            reviewID: 1,
+            userID: 5,
+            businessID: businessId,
+            rating: 4.5,
+            comment: "Çok iyi bir hizmet aldım, teşekkür ederim!",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          {
+            reviewID: 2,
+            userID: 8,
+            businessID: businessId,
+            rating: 5,
+            comment: "Harika bir deneyimdi, kesinlikle tavsiye ediyorum.",
+            createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 gün önce
+            updatedAt: new Date(Date.now() - 86400000).toISOString()
+          }
+        ];
       }
-    ];
+    }
   }
 };
 

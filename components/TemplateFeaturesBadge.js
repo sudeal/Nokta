@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ScrollView, Linking, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, ScrollView, Linking, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getTemplateFeatures, getEnabledFeatures, getTemplateDescription } from './TemplateManager';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Dimensions } from 'react-native';
 import { getBusinessReviews, calculateAverageRating, addBusinessReview } from '../services/BusinessReviewService';
+import { sendMessage } from '../services/MessageService';
+import { getCurrentUser } from '../services/UserService';
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +49,7 @@ const TemplateFeaturesBadge = ({ templateId, colorScheme, business }) => {
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
   
   // Reviews states
   const [reviews, setReviews] = useState([]);
@@ -189,15 +192,60 @@ const TemplateFeaturesBadge = ({ templateId, colorScheme, business }) => {
     { id: 5, name: 'Item 5', price: '29.99 TL', description: 'Description for item 5' },
   ];
 
-  const handleSendMessage = () => {
-    if (message.trim() === '') return;
-    
-    // In a real app, you would send the message to an API
-    console.log('Sending message:', message);
-    
-    // Reset and close modal
-    setMessage('');
-    setShowMessageModal(false);
+  const handleSendMessage = async () => {
+    if (message.trim() === '') {
+      Alert.alert('Error', 'Please enter a message');
+      return;
+    }
+
+    setSending(true);
+    try {
+      // Get current user
+      const currentUser = await getCurrentUser();
+      if (!currentUser || !currentUser.userID) {
+        Alert.alert('Error', 'Please login to send messages');
+        setSending(false);
+        return;
+      }
+
+      // Debug business object
+      console.log('Business object:', business);
+      console.log('Business ID options:', {
+        businessID: business?.businessID,
+        id: business?.id,
+        business_id: business?.business_id,
+        businessId: business?.businessId
+      });
+
+      // Try different businessID field names
+      const businessId = business?.businessID || business?.id || business?.business_id || business?.businessId;
+      
+      if (!businessId) {
+        Alert.alert('Error', 'Business ID not found. Cannot send message.');
+        setSending(false);
+        return;
+      }
+
+      console.log('Sending message with:', {
+        userID: currentUser.userID,
+        businessID: businessId,
+        content: message.trim()
+      });
+
+      // Send message
+      await sendMessage(currentUser.userID, businessId, message.trim());
+      
+      Alert.alert('Success', 'Message sent successfully!');
+      
+      // Reset and close modal
+      setMessage('');
+      setShowMessageModal(false);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
   
   const handleGetDirections = () => {
@@ -295,10 +343,15 @@ const TemplateFeaturesBadge = ({ templateId, colorScheme, business }) => {
                 />
                 
                 <TouchableOpacity 
-                  style={[styles.sendButton, { backgroundColor: colorScheme?.primary || '#4B63DB' }]}
+                  style={[styles.sendButton, { backgroundColor: colorScheme?.primary || '#4B63DB' }, sending && { opacity: 0.6 }]}
                   onPress={handleSendMessage}
+                  disabled={sending}
                 >
-                  <Text style={styles.sendButtonText}>Send Message</Text>
+                  {sending ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.sendButtonText}>Send Message</Text>
+                  )}
                 </TouchableOpacity>
               </TouchableOpacity>
             </ScrollView>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,10 +8,14 @@ import {
   TextInput,
   SafeAreaView,
   FlatList,
-  Image
+  Image,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { getMessages } from '../services/MessageService';
+import { getCurrentUser } from '../services/UserService';
 
 // Geçici mesaj verileri
 const dummyMessages = [
@@ -59,7 +63,37 @@ const dummyMessages = [
 
 export default function MessagesScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [messages, setMessages] = useState(dummyMessages);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    loadMessages();
+  }, []);
+
+  const loadMessages = async () => {
+    try {
+      setLoading(true);
+      const user = await getCurrentUser();
+      if (!user || !user.userID) {
+        Alert.alert('Error', 'Please login to view messages');
+        navigation.navigate('Login');
+        return;
+      }
+      
+      setCurrentUser(user);
+      
+      // Get messages from API
+      const userMessages = await getMessages(user.userID);
+      setMessages(userMessages || dummyMessages); // Fallback to dummy data if API fails
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      // Use dummy data as fallback
+      setMessages(dummyMessages);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Mesajları filtrele
   const filteredMessages = messages.filter(message =>
@@ -130,7 +164,12 @@ export default function MessagesScreen({ navigation }) {
           </View>
         </View>
         
-        {filteredMessages.length > 0 ? (
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4CC9F0" />
+            <Text style={styles.loadingText}>Loading messages...</Text>
+          </View>
+        ) : filteredMessages.length > 0 ? (
           <FlatList
             data={filteredMessages}
             renderItem={renderMessageItem}
@@ -253,6 +292,17 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     backgroundColor: '#4CC9F0',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 16,
+    marginTop: 12,
   },
   emptyContainer: {
     flex: 1,

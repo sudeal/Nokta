@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export const getUserProfile = async (userId) => {
   try {
     if (!userId) {
@@ -30,5 +32,20 @@ export const getUserProfile = async (userId) => {
   } catch (error) {
     console.error('Error in getUserProfile:', error);
     throw error;
+  }
+};
+
+export const getCurrentUser = async () => {
+  try {
+    const storedUserData = await AsyncStorage.getItem('userData');
+    if (!storedUserData) {
+      return null;
+    }
+
+    const parsedUserData = JSON.parse(storedUserData);
+    return parsedUserData;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
   }
 }; 

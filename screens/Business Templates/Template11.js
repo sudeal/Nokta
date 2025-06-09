@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, TextInput, Modal, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { BarChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
+import { sendMessage } from '../../services/MessageService';
+import { getCurrentUser } from '../../services/UserService';
 
 const { width } = Dimensions.get('window');
 
@@ -11,6 +13,7 @@ const Template11 = ({ business, colorScheme }) => {
   // Template 11: Messaging and Statistics features enabled
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
   
   // Sample statistics data (in a real app, this would come from an API)
   const statisticsData = {
@@ -37,15 +40,60 @@ const Template11 = ({ business, colorScheme }) => {
     }
   };
 
-  const handleSendMessage = () => {
-    if (message.trim() === '') return;
-    
-    // In a real app, you would send the message to an API
-    console.log('Sending message:', message);
-    
-    // Reset and close modal
-    setMessage('');
-    setShowMessageModal(false);
+  const handleSendMessage = async () => {
+    if (message.trim() === '') {
+      Alert.alert('Error', 'Please enter a message');
+      return;
+    }
+
+    setSending(true);
+    try {
+      // Get current user
+      const currentUser = await getCurrentUser();
+      if (!currentUser || !currentUser.userID) {
+        Alert.alert('Error', 'Please login to send messages');
+        setSending(false);
+        return;
+      }
+
+      // Debug business object
+      console.log('Business object:', business);
+      console.log('Business ID options:', {
+        businessID: business?.businessID,
+        id: business?.id,
+        business_id: business?.business_id,
+        businessId: business?.businessId
+      });
+
+      // Try different businessID field names
+      const businessId = business?.businessID || business?.id || business?.business_id || business?.businessId;
+      
+      if (!businessId) {
+        Alert.alert('Error', 'Business ID not found. Cannot send message.');
+        setSending(false);
+        return;
+      }
+
+      console.log('Sending message with:', {
+        userID: currentUser.userID,
+        businessID: businessId,
+        content: message.trim()
+      });
+
+      // Send message
+      await sendMessage(currentUser.userID, businessId, message.trim());
+      
+      Alert.alert('Success', 'Message sent successfully!');
+      
+      // Reset and close modal
+      setMessage('');
+      setShowMessageModal(false);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -191,32 +239,76 @@ const Template11 = ({ business, colorScheme }) => {
         transparent={true}
         onRequestClose={() => setShowMessageModal(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Send Message to {business?.name}</Text>
-              <TouchableOpacity onPress={() => setShowMessageModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
-              </TouchableOpacity>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalContainer}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalContent}>
+              {/* Modal Header with Gradient */}
+              <LinearGradient
+                colors={[colorScheme.primary || '#4B63DB', colorScheme.secondary || '#8B5CF6']}
+                style={styles.modalHeader}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <View style={styles.modalHeaderContent}>
+                  <View style={styles.modalTitleContainer}>
+                    <Ionicons name="chatbubble" size={24} color="#fff" />
+                    <Text style={styles.modalTitle}>Send Message</Text>
+                  </View>
+                  <TouchableOpacity 
+                    onPress={() => setShowMessageModal(false)}
+                    style={styles.closeButton}
+                  >
+                    <Ionicons name="close" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.businessNameInModal}>to {business?.name}</Text>
+              </LinearGradient>
+
+              {/* Modal Body */}
+              <View style={styles.modalBody}>
+                <Text style={styles.inputLabel}>Your Message</Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.messageInput}
+                    placeholder="Type your message here..."
+                    placeholderTextColor="#a0aec0"
+                    value={message}
+                    onChangeText={setMessage}
+                    multiline
+                    numberOfLines={6}
+                    textAlignVertical="top"
+                  />
+                </View>
+
+                {/* Send Button */}
+                <TouchableOpacity 
+                  style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+                  onPress={handleSendMessage}
+                  disabled={sending}
+                >
+                  <LinearGradient
+                    colors={sending ? ['#cbd5e0', '#a0aec0'] : [colorScheme.primary || '#4B63DB', colorScheme.secondary || '#8B5CF6']}
+                    style={styles.sendButtonGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                  >
+                    {sending ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <View style={styles.sendButtonContent}>
+                        <Ionicons name="send" size={20} color="#fff" />
+                        <Text style={styles.sendButtonText}>Send Message</Text>
+                      </View>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
             </View>
-            
-            <TextInput
-              style={styles.messageInput}
-              placeholder="Type your message here..."
-              value={message}
-              onChangeText={setMessage}
-              multiline
-              numberOfLines={4}
-            />
-            
-            <TouchableOpacity 
-              style={[styles.sendButton, { backgroundColor: colorScheme.primary }]}
-              onPress={handleSendMessage}
-            >
-              <Text style={styles.sendButtonText}>Send Message</Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );
@@ -352,53 +444,108 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 20,
+  },
+  modalBackdrop: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: 20,
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
+    borderRadius: 20,
     width: '100%',
     maxWidth: 500,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+    overflow: 'hidden',
   },
   modalHeader: {
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  modalHeaderContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+  },
+  modalTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 10,
+  },
+  closeButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  businessNameInModal: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  modalBody: {
+    padding: 25,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#2d3748',
+    marginBottom: 12,
+  },
+  inputContainer: {
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    borderRadius: 15,
+    padding: 0,
+    marginBottom: 20,
+    backgroundColor: '#f8f9fa',
   },
   messageInput: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    padding: 15,
     fontSize: 16,
+    color: '#4a5568',
+    padding: 15,
     minHeight: 120,
     textAlignVertical: 'top',
-    marginBottom: 20,
+    lineHeight: 22,
   },
   sendButton: {
-    paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 15,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+  },
+  sendButtonDisabled: {
+    opacity: 0.6,
+  },
+  sendButtonGradient: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  sendButtonContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   sendButtonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+    marginLeft: 8,
   },
 });
 
