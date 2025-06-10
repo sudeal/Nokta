@@ -9,10 +9,30 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import { Calendar } from 'react-native-calendars';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
+
+// Takvim dil ayarları
+LocaleConfig.locales['tr'] = {
+  monthNames: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
+  monthNamesShort: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
+  dayNames: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
+  dayNamesShort: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'],
+  today: 'Bugün'
+};
+
+LocaleConfig.locales['en'] = {
+  monthNames: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+  monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  today: 'Today'
+};
+
+// Varsayılan dili ayarla
+LocaleConfig.defaultLocale = 'en';
 
 export default function CalendarScreen({ navigation }) {
   const { t, currentLanguage } = useLanguage();
@@ -23,32 +43,10 @@ export default function CalendarScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [allAppointments, setAllAppointments] = useState([]); // Tüm randevuları saklamak için
 
-  // Takvim ayarları
-  const calendarConfig = {
-    tr: {
-      monthNames: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
-      monthNamesShort: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
-      dayNames: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'],
-      dayNamesShort: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
-    },
-    en: {
-      monthNames: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-      monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-      dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-      dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    }
-  };
-
-  // Türkçe gün isimleri
-  const turkishDayNames = {
-    '1': 'Pzt',
-    '2': 'Sal',
-    '3': 'Çar',
-    '4': 'Per',
-    '5': 'Cum',
-    '6': 'Cmt',
-    '7': 'Paz'
-  };
+  // Dil değiştiğinde takvim dilini güncelle
+  useEffect(() => {
+    LocaleConfig.defaultLocale = currentLanguage;
+  }, [currentLanguage]);
 
   // İşletme detaylarını çeken fonksiyon
   const fetchBusinessDetails = async (businessID) => {
@@ -526,32 +524,6 @@ export default function CalendarScreen({ navigation }) {
               textMonthFontWeight: 'bold',
               textDayHeaderFontWeight: '600',
             }}
-            renderHeader={(date) => {
-              const month = date.toString('MMMM');
-              const year = date.toString('yyyy');
-              if (currentLanguage === 'tr') {
-                const monthIndex = new Date(date).getMonth();
-                return (
-                  <View style={styles.calendarHeader}>
-                    <Text style={styles.calendarHeaderText}>
-                      {`${calendarConfig.tr.monthNames[monthIndex]} ${year}`}
-                    </Text>
-                  </View>
-                );
-              }
-              return null;
-            }}
-            dayNames={currentLanguage === 'tr' ? ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'] : undefined}
-            customHeaderTitle={currentLanguage === 'tr' ? {
-              '1': 'Pzt',
-              '2': 'Sal',
-              '3': 'Çar',
-              '4': 'Per',
-              '5': 'Cum',
-              '6': 'Cmt',
-              '7': 'Paz'
-            } : undefined}
-            dayNamesShort={currentLanguage === 'tr' ? ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'] : undefined}
           />
         </View>
 
@@ -687,5 +659,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',
+  },
+  dayContainer: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dayText: {
+    color: '#4CC9F0',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
