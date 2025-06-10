@@ -186,7 +186,10 @@ const CustomDatePicker = ({ isVisible, onClose, onSelect, colorScheme }) => {
       <View style={styles.modalContainer}>
         <View style={[styles.pickerContainer, { backgroundColor: colorScheme.background }]}>
           <View style={styles.headerRow}>
-            <Text style={[styles.pickerTitle, { color: colorScheme.primary }]}>Select Date and Time</Text>
+            <View>
+              <Text style={[styles.pickerTitle, { color: colorScheme.primary }]}>Select Date and Time</Text>
+              <Text style={[styles.pickerSubtitle, { color: colorScheme.primary, opacity: 0.7 }]}>Appointment duration: 1 hour</Text>
+            </View>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <MaterialIcons name="close" size={24} color={colorScheme.primary} />
             </TouchableOpacity>
@@ -442,6 +445,77 @@ export default function BusinessDetailScreen({ route, navigation }) {
     }
   };
 
+  const checkAppointmentConflict = async (startDateTime, endDateTime) => {
+    try {
+      // API'den bu işletmenin mevcut randevularını al
+      const response = await fetch(`https://nokta-appservice.azurewebsites.net/api/Appointments/business/${business.businessID}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.log('Could not fetch existing appointments, proceeding with booking');
+        return false; // API'de hata varsa randevuya izin ver
+      }
+
+      const existingAppointments = await response.json();
+      console.log('Existing appointments:', existingAppointments);
+
+      // Seçilen tarih için randevuları filtrele
+      const selectedDate = startDateTime.toDateString();
+      const appointmentsOnSelectedDate = existingAppointments.filter(appointment => {
+        const appointmentDate = new Date(appointment.appointmentDateTime).toDateString();
+        return appointmentDate === selectedDate && 
+               (appointment.status === 'Pending' || appointment.status === 'Confirmed');
+      });
+
+      console.log('Appointments on selected date:', appointmentsOnSelectedDate);
+
+      // Çakışma kontrolü
+      for (const existingAppointment of appointmentsOnSelectedDate) {
+        const existingStart = new Date(existingAppointment.appointmentDateTime);
+        const existingEnd = existingAppointment.appointmentEndDateTime 
+          ? new Date(existingAppointment.appointmentEndDateTime)
+          : new Date(existingStart.getTime() + 60 * 60 * 1000); // Eğer bitiş zamanı yoksa 1 saat ekle
+
+        // Çakışma kontrolü: yeni randevu mevcut randevuyla çakışıyor mu?
+        const hasConflict = (
+          (startDateTime >= existingStart && startDateTime < existingEnd) || // Yeni başlangıç mevcut randevu içinde
+          (endDateTime > existingStart && endDateTime <= existingEnd) ||     // Yeni bitiş mevcut randevu içinde
+          (startDateTime <= existingStart && endDateTime >= existingEnd)     // Yeni randevu mevcut randevuyu kapsıyor
+        );
+
+        if (hasConflict) {
+          const formatTime = (date) => {
+            return date.toLocaleTimeString('tr-TR', {
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          };
+
+          console.log('Conflict detected:', {
+            newAppointment: { start: startDateTime, end: endDateTime },
+            existingAppointment: { start: existingStart, end: existingEnd }
+          });
+
+          return {
+            hasConflict: true,
+            conflictMessage: `This time slot conflicts with an existing appointment (${formatTime(existingStart)} - ${formatTime(existingEnd)}). Please choose a different time.`
+          };
+        }
+      }
+
+      return { hasConflict: false };
+
+    } catch (error) {
+      console.error('Error checking appointment conflicts:', error);
+      return { hasConflict: false }; // Hata durumunda randevuya izin ver
+    }
+  };
+
   const handleDateTimeSelect = async (dateTime) => {
     setShowDatePicker(false);
     
@@ -465,6 +539,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
       closingHour
     });
 
+    // Check if appointment start time is within business hours
     if (selectedTimeInDecimal < openingHour || selectedTimeInDecimal > closingHour) {
       const formatTime = (hour) => {
         const hrs = Math.floor(hour);
@@ -480,9 +555,58 @@ export default function BusinessDetailScreen({ route, navigation }) {
       return;
     }
 
+    // Check if appointment end time (start + 1 hour) is within business hours
+    const appointmentEndTimeInDecimal = selectedTimeInDecimal + 1; // Add 1 hour
+    if (appointmentEndTimeInDecimal > closingHour) {
+      const formatTime = (hour) => {
+        const hrs = Math.floor(hour);
+        const mins = Math.round((hour - hrs) * 60);
+        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      };
+
+      Alert.alert(
+        "Invalid Time",
+        `Appointment duration is 1 hour. Please select a time that allows the appointment to finish before ${formatTime(closingHour)}.`,
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Calculate end time for display
+    const endTime = new Date(dateTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+
+    // Check for appointment conflicts
+    const conflictCheck = await checkAppointmentConflict(dateTime, endTime);
+    if (conflictCheck.hasConflict) {
+      Alert.alert(
+        "Time Slot Not Available",
+        conflictCheck.conflictMessage,
+        [{ text: "OK" }]
+      );
+      return;
+    }
+    
+    const formatDateTime = (date) => {
+      return date.toLocaleString('tr-TR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
+    const formatTime = (date) => {
+      return date.toLocaleTimeString('tr-TR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
     Alert.alert(
       "Appointment Confirmation",
-      `Would you like to book an appointment at ${business?.name || ''} for ${dateTime.toLocaleString()}?`,
+      `Would you like to book a 1-hour appointment at ${business?.name || ''}?\n\nDate: ${formatDateTime(dateTime)}\nDuration: ${formatTime(dateTime)} - ${formatTime(endTime)} (1 hour)`,
       [
         {
           text: "Cancel",
@@ -492,7 +616,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
           text: "Confirm",
           onPress: async () => {
             try {
-              await createAppointment(dateTime);
+              await createAppointment(dateTime, endTime);
             } catch (error) {
               console.error('Error in handleDateTimeSelect:', error);
             }
@@ -502,7 +626,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
     );
   };
 
-  const createAppointment = async (dateTime) => {
+  const createAppointment = async (startDateTime, endDateTime) => {
     if (!userId) {
       Alert.alert(
         "Error",
@@ -519,21 +643,28 @@ export default function BusinessDetailScreen({ route, navigation }) {
 
     try {
       // Seçilen tarihi yerel saat dilimine göre ayarla
-      const localDate = new Date(dateTime);
+      const localStartDate = new Date(startDateTime);
+      const localEndDate = new Date(endDateTime);
       
       // UTC offset'i hesapla (Türkiye için +3)
       const utcOffset = 3;
       
       // Yeni bir tarih oluştur ve UTC saatini ayarla
-      const utcDate = new Date(localDate.getTime() + (utcOffset * 60 * 60 * 1000));
+      const utcStartDate = new Date(localStartDate.getTime() + (utcOffset * 60 * 60 * 1000));
+      const utcEndDate = new Date(localEndDate.getTime() + (utcOffset * 60 * 60 * 1000));
       
       console.log('Appointment DateTime Details:', {
-        originalDate: dateTime,
-        localDate: localDate,
-        localHours: localDate.getHours(),
-        localMinutes: localDate.getMinutes(),
-        utcDate: utcDate,
-        utcIsoString: utcDate.toISOString(),
+        originalStartDate: startDateTime,
+        originalEndDate: endDateTime,
+        localStartDate: localStartDate,
+        localEndDate: localEndDate,
+        localStartHours: localStartDate.getHours(),
+        localStartMinutes: localStartDate.getMinutes(),
+        utcStartDate: utcStartDate,
+        utcEndDate: utcEndDate,
+        utcStartIsoString: utcStartDate.toISOString(),
+        utcEndIsoString: utcEndDate.toISOString(),
+        duration: '1 hour',
         businessHours: {
           opening: business.openingHour,
           closing: business.closingHour
@@ -543,8 +674,10 @@ export default function BusinessDetailScreen({ route, navigation }) {
       const appointmentData = {
         userID: 5, // Sabit userID
         businessID: parseInt(business.businessID),
-        appointmentDateTime: utcDate.toISOString(),
-        note: "no note attached",
+        appointmentDateTime: utcStartDate.toISOString(),
+        appointmentEndDateTime: utcEndDate.toISOString(), // Bitiş zamanı eklendi
+        duration: 60, // Dakika cinsinden süre
+        note: "1 hour appointment - no note attached",
         status: "Pending"
       };
 
@@ -569,9 +702,16 @@ export default function BusinessDetailScreen({ route, navigation }) {
         throw new Error(`Appointment creation failed: ${response.status} ${responseText}`);
       }
 
+      const formatTime = (date) => {
+        return date.toLocaleTimeString('tr-TR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      };
+
       Alert.alert(
         "Success!",
-        `Your appointment has been booked successfully for ${localDate.toLocaleTimeString()}.`,
+        `Your 1-hour appointment has been booked successfully!\n\nTime: ${formatTime(localStartDate)} - ${formatTime(localEndDate)}`,
         [
           { 
             text: "View Appointments",
@@ -1026,7 +1166,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
               end={{ x: 1, y: 0 }}
             >
               <Text style={[styles.buttonText, { fontSize: 18, fontWeight: '600' }]}>
-                Book Appointment
+                Book 1-Hour Appointment
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -1244,6 +1384,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
+  },
+  pickerSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 4,
   },
   closeButton: {
     padding: 8,
