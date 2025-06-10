@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Statistics = () => {
+  const { translations, isEnglish } = useLanguage();
+  const t = translations.statistics;
+
   const [businessData, setBusinessData] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,22 +67,22 @@ const Statistics = () => {
 
     return [
       { 
-        label: 'Total Appointments', 
+        label: t.stats.totalAppointments, 
         value: totalAppointments,
         color: '#3f51b5' 
       },
       { 
-        label: 'Completed', 
+        label: t.stats.completed, 
         value: completedAppointments,
         color: '#4caf50' 
       },
       { 
-        label: 'Pending', 
+        label: t.stats.pending, 
         value: pendingAppointments,
         color: '#ff9800' 
       },
       { 
-        label: 'Cancelled', 
+        label: t.stats.cancelled, 
         value: cancelledAppointments,
         color: '#f44336' 
       }
@@ -193,7 +197,7 @@ const Statistics = () => {
             borderRadius: '50%',
             animation: 'spin 1s linear infinite'
           }}></div>
-          Loading statistics...
+          {t.loading}
         </div>
         <style>
           {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
@@ -220,7 +224,7 @@ const Statistics = () => {
           alignItems: 'center',
           gap: '10px'
         }}>
-          <span>⚠️</span> Error
+          <span>⚠️</span> {t.error}
         </h1>
         <p style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
           {error}
@@ -237,7 +241,7 @@ const Statistics = () => {
             marginTop: '15px'
           }}
         >
-          Try Again
+          {t.tryAgain}
         </button>
       </div>
     );
@@ -279,7 +283,7 @@ const Statistics = () => {
           gap: '12px'
         }}>
           <span style={{ fontSize: '24px' }}>📊</span>
-          Statistics Dashboard
+          {t.title}
         </h1>
         <p style={{
           margin: '8px 0 0 0',
@@ -362,7 +366,7 @@ const Statistics = () => {
               gap: '8px'
             }}>
               <span style={{ fontSize: '20px' }}>📅</span>
-              Daily Distribution
+              {t.charts.dailyDistribution}
             </h3>
             <div style={{
               height: '250px',
@@ -371,7 +375,7 @@ const Statistics = () => {
               justifyContent: 'space-between',
               padding: '0 20px'
             }}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
+              {Object.values(t.charts.days).map((day, i) => (
                 <div key={i} style={{ 
                   textAlign: 'center',
                   flex: 1,
@@ -430,7 +434,7 @@ const Statistics = () => {
               gap: '8px'
             }}>
               <span style={{ fontSize: '20px' }}>📊</span>
-              Monthly Distribution
+              {t.charts.monthlyDistribution}
             </h3>
             <div style={{
               height: '250px',
@@ -439,7 +443,7 @@ const Statistics = () => {
               justifyContent: 'space-between',
               padding: '0 20px'
             }}>
-              {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, i) => (
+              {Object.values(t.charts.months).map((month, i) => (
                 <div key={i} style={{ 
                   textAlign: 'center',
                   flex: 1,
@@ -498,7 +502,7 @@ const Statistics = () => {
               gap: '8px'
             }}>
               <span style={{ fontSize: '20px' }}>📆</span>
-              Appointment Activity (Last 12 Weeks)
+              {t.charts.appointmentActivity}
             </h3>
 
             {/* Calendar header */}
@@ -508,7 +512,7 @@ const Statistics = () => {
               gap: '4px',
               marginBottom: '8px'
             }}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              {Object.values(t.charts.days).map((day) => (
                 <div key={day} style={{
                   color: 'rgba(255, 255, 255, 0.6)',
                   fontSize: '12px',
@@ -591,7 +595,7 @@ const Statistics = () => {
                   borderRadius: '2px',
                   border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}></div>
-                <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px' }}>No appointments</span>
+                <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px' }}>{t.charts.legend.noAppointments}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ 
@@ -601,7 +605,7 @@ const Statistics = () => {
                   borderRadius: '2px',
                   border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}></div>
-                <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px' }}>1-2 appointments</span>
+                <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px' }}>{t.charts.legend.oneToTwoAppointments}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ 
@@ -611,7 +615,7 @@ const Statistics = () => {
                   borderRadius: '2px',
                   border: '1px solid rgba(255, 255, 255, 0.1)'
                 }}></div>
-                <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px' }}>3+ appointments</span>
+                <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px' }}>{t.charts.legend.threePlusAppointments}</span>
               </div>
             </div>
           </div>

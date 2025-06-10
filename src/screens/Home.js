@@ -1,7 +1,11 @@
 import React from "react";
 import image from '../assets/takvim.jpg';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Home = () => {
+  const { translations } = useLanguage();
+  const t = translations.home;
+
   return (
     <div className="home-container">
       {/* Hero Section with Animated Background */}
@@ -9,8 +13,8 @@ const Home = () => {
         <div className="hero-bg-shape"></div>
         <div className="content-container hero-container">
           <div className="hero-content">
-            <h1 className="hero-title">NOKTA</h1>
-            <p className="hero-subtitle">Customer Management & Appointment System</p>
+            <h1 className="hero-title">{t.hero.title}</h1>
+            <p className="hero-subtitle">{t.hero.subtitle}</p>
           </div>
           <div className="hero-image-container">
             <div className="hero-image">
@@ -19,11 +23,11 @@ const Home = () => {
             </div>
             <div className="floating-card card-1">
               <span className="card-icon">🔔</span>
-              <span className="card-text">Quick Customer Search</span>
+              <span className="card-text">{t.features.reminders.title}</span>
             </div>
             <div className="floating-card card-2">
               <span className="card-icon">📅</span>
-              <span className="card-text">Easy Appointment Management</span>
+              <span className="card-text">{t.features.timeSaving.title}</span>
             </div>
           </div>
         </div>
@@ -34,8 +38,8 @@ const Home = () => {
         <div className="section-bg-shape"></div>
         <div className="content-container">
           <div className="section-header">
-            <h2>Why Nokta?</h2>
-            <p>All appointment management tools you need for your business</p>
+            <h2>{t.features.title}</h2>
+            <p>{t.features.subtitle}</p>
           </div>
           
           <div className="features-rows">
@@ -43,24 +47,24 @@ const Home = () => {
               <div className="feature-card">
                 <div className="feature-icon">⏰</div>
                 <div className="feature-content">
-                  <h3>Time Saving</h3>
-                  <p>Provide instant and easy appointments to your customers, eliminating phone reservation processes</p>
+                  <h3>{t.features.timeSaving.title}</h3>
+                  <p>{t.features.timeSaving.description}</p>
                 </div>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">🔍</div>
                 <div className="feature-content">
-                  <h3>Visibility</h3>
-                  <p>Reach more customers and let them discover your services</p>
+                  <h3>{t.features.visibility.title}</h3>
+                  <p>{t.features.visibility.description}</p>
                 </div>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">🚀</div>
                 <div className="feature-content">
-                  <h3>Easy Integration</h3>
-                  <p>Quickly integrate with your existing system to improve customer experience</p>
+                  <h3>{t.features.integration.title}</h3>
+                  <p>{t.features.integration.description}</p>
                 </div>
               </div>
             </div>
@@ -69,24 +73,24 @@ const Home = () => {
               <div className="feature-card">
                 <div className="feature-icon">🔔</div>
                 <div className="feature-content">
-                  <h3>Reminders</h3>
-                  <p>Reduce cancellation and delay rates with automatic reminders</p>
+                  <h3>{t.features.reminders.title}</h3>
+                  <p>{t.features.reminders.description}</p>
                 </div>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">📊</div>
                 <div className="feature-content">
-                  <h3>Analytics</h3>
-                  <p>Track your business performance with comprehensive reporting tools</p>
+                  <h3>{t.features.analytics.title}</h3>
+                  <p>{t.features.analytics.description}</p>
                 </div>
               </div>
               
               <div className="feature-card">
                 <div className="feature-icon">🔒</div>
                 <div className="feature-content">
-                  <h3>Secure</h3>
-                  <p>Your data is protected with enterprise-level security</p>
+                  <h3>{t.features.security.title}</h3>
+                  <p>{t.features.security.description}</p>
                 </div>
               </div>
             </div>
@@ -98,8 +102,8 @@ const Home = () => {
       <section className="how-it-works">
         <div className="content-container">
           <div className="section-header">
-            <h2>How It Works?</h2>
-            <p>Transition to an online appointment system in three simple steps for your business</p>
+            <h2>{t.howItWorks.title}</h2>
+            <p>{t.howItWorks.subtitle}</p>
           </div>
           
           <div className="steps-container">
@@ -108,8 +112,8 @@ const Home = () => {
                 <div className="step-number">1</div>
               </div>
               <div className="step-content">
-                <h3>Create an Account</h3>
-                <p>Add your business to the system in just a few minutes</p>
+                <h3>{t.howItWorks.steps.step1.title}</h3>
+                <p>{t.howItWorks.steps.step1.description}</p>
               </div>
             </div>
             
@@ -120,8 +124,8 @@ const Home = () => {
                 <div className="step-number">2</div>
               </div>
               <div className="step-content">
-                <h3>Define Services</h3>
-                <p>Specify the services you offer and your available time slots</p>
+                <h3>{t.howItWorks.steps.step2.title}</h3>
+                <p>{t.howItWorks.steps.step2.description}</p>
               </div>
             </div>
             
@@ -132,8 +136,8 @@ const Home = () => {
                 <div className="step-number">3</div>
               </div>
               <div className="step-content">
-                <h3>Accept Customers</h3>
-                <p>Customers can book appointments online while you focus on your business</p>
+                <h3>{t.howItWorks.steps.step3.title}</h3>
+                <p>{t.howItWorks.steps.step3.description}</p>
               </div>
             </div>
           </div>
@@ -145,46 +149,46 @@ const Home = () => {
         <div className="section-bg-shape founders-bg"></div>
         <div className="content-container">
           <div className="section-header">
-            <h2>Our Founders</h2>
-            <p>The innovative team behind Nokta</p>
+            <h2>{t.founders.title}</h2>
+            <p>{t.founders.subtitle}</p>
           </div>
           
           <div className="founders-grid">
             <div className="founder-card">
               <div className="founder-content">
-                <p>"We founded Nokta to solve the problems in the appointment scheduling process for businesses. Our vision is to make appointment booking simple and efficient for everyone."</p>
+                <p>{t.founders.egemen.quote}</p>
               </div>
               <div className="founder-info">
                 <div className="founder-avatar">EÖ</div>
                 <div className="founder-details">
-                  <h4>Egemen Özyürek</h4>
-                  <p>Co-Founder</p>
+                  <h4>{t.founders.egemen.name}</h4>
+                  <p>{t.founders.egemen.role}</p>
                 </div>
               </div>
             </div>
             
             <div className="founder-card">
               <div className="founder-content">
-                <p>"Our platform serves as a bridge between businesses and customers. We develop technologies that save time and eliminate appointment scheduling problems."</p>
+                <p>{t.founders.melike.quote}</p>
               </div>
               <div className="founder-info">
                 <div className="founder-avatar">MT</div>
                 <div className="founder-details">
-                  <h4>Melike Telef</h4>
-                  <p>Co-Founder</p>
+                  <h4>{t.founders.melike.name}</h4>
+                  <p>{t.founders.melike.role}</p>
                 </div>
               </div>
             </div>
             
             <div className="founder-card">
               <div className="founder-content">
-                <p>"At Nokta, we believe in creating seamless experiences. Our focus is on developing intuitive solutions that make appointment management effortless for businesses."</p>
+                <p>{t.founders.sude.quote}</p>
               </div>
               <div className="founder-info">
                 <div className="founder-avatar">SA</div>
                 <div className="founder-details">
-                  <h4>Sude Alkan</h4>
-                  <p>Co-Founder</p>
+                  <h4>{t.founders.sude.name}</h4>
+                  <p>{t.founders.sude.role}</p>
                 </div>
               </div>
             </div>

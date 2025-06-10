@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from "react";
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Directions = () => {
+  const { translations, isEnglish } = useLanguage();
+  const t = translations.menu.directions;
+
+  // Helper function to get the correct translation
+  const getTranslation = (key) => {
+    return isEnglish ? t[key].en : t[key].tr;
+  };
+
   const [businessData, setBusinessData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [mapUrl, setMapUrl] = useState('');
 
   useEffect(() => {
     const fetchBusinessData = async () => {
@@ -44,6 +54,14 @@ const Directions = () => {
     fetchBusinessData();
   }, []);
 
+  useEffect(() => {
+    // Simulate loading map
+    setTimeout(() => {
+      setMapUrl('https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3008.443928665799!2d28.9776!3d41.0370!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDHCsDAyJzEzLjIiTiAyOMKwNTgnMzkuNCJF!5e0!3m2!1str!2str!4v1620000000000!5m2!1str!2str');
+      setLoading(false);
+    }, 1000);
+  }, []);
+
   // Format opening/closing hours to readable time
   const formatTime = (hour) => {
     const hours = Math.floor(hour);
@@ -56,11 +74,17 @@ const Directions = () => {
   // Generate business hours for each day of the week
   const generateBusinessHours = () => {
     const days = [
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+      { key: 'monday', en: 'Monday', tr: 'Pazartesi' },
+      { key: 'tuesday', en: 'Tuesday', tr: 'Salı' },
+      { key: 'wednesday', en: 'Wednesday', tr: 'Çarşamba' },
+      { key: 'thursday', en: 'Thursday', tr: 'Perşembe' },
+      { key: 'friday', en: 'Friday', tr: 'Cuma' },
+      { key: 'saturday', en: 'Saturday', tr: 'Cumartesi' },
+      { key: 'sunday', en: 'Sunday', tr: 'Pazar' }
     ];
     
     return days.map((day, index) => ({
-      day: day,
+      day: isEnglish ? day.en : day.tr,
       hours: `${formatTime(businessData.openingHour)} - ${formatTime(businessData.closingHour)}`,
       isToday: index === (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1) // Adjust for week start
     }));
@@ -93,7 +117,7 @@ const Directions = () => {
             borderRadius: '50%',
             animation: 'spin 1s linear infinite'
           }}></div>
-          Loading business information...
+          {getTranslation('loading')}
         </div>
         <style>
           {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
@@ -120,7 +144,7 @@ const Directions = () => {
           alignItems: 'center',
           gap: '10px'
         }}>
-          <span>⚠️</span> Error
+          <span>⚠️</span> {getTranslation('error')}
         </h1>
         <p style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
           {error}
@@ -137,7 +161,7 @@ const Directions = () => {
             marginTop: '15px'
           }}
         >
-          Try Again
+          {getTranslation('tryAgain')}
         </button>
       </div>
     );
@@ -172,8 +196,8 @@ const Directions = () => {
           alignItems: 'center',
           gap: '12px'
         }}>
-          <span style={{ fontSize: '24px' }}>🗺️</span>
-          Directions & Hours
+          <span style={{ fontSize: '24px' }}>📍</span>
+          {getTranslation('title')}
         </h1>
         <p style={{
           margin: '8px 0 0 0',
@@ -199,7 +223,7 @@ const Directions = () => {
           fontSize: '14px',
           lineHeight: '1.4'
         }}>
-          Your business location information is being shared on your page
+          {getTranslation('locationNotice')}
         </div>
       </div>
       
@@ -224,7 +248,7 @@ const Directions = () => {
             alignItems: 'center',
             gap: '10px'
           }}>
-            <span>📍</span> Contact Information
+            <span>📍</span> {getTranslation('address')}
           </h3>
           
           <div style={{
@@ -244,7 +268,7 @@ const Directions = () => {
             }}>
               <span style={{ fontSize: '20px', marginTop: '2px' }}>📍</span>
               <div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px', marginBottom: '4px' }}>Address</div>
+                <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px', marginBottom: '4px' }}>{getTranslation('address')}</div>
                 <div style={{ color: 'white', fontSize: '15px', lineHeight: '1.5' }}>
                   {businessData.address}
                 </div>
@@ -262,7 +286,7 @@ const Directions = () => {
             }}>
               <span style={{ fontSize: '20px', marginTop: '2px' }}>📞</span>
               <div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px', marginBottom: '4px' }}>Phone</div>
+                <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px', marginBottom: '4px' }}>{getTranslation('phone')}</div>
                 <div style={{ color: 'white', fontSize: '15px', lineHeight: '1.5' }}>
                   {businessData.contactNumber}
                 </div>
@@ -279,7 +303,7 @@ const Directions = () => {
             }}>
               <span style={{ fontSize: '20px', marginTop: '2px' }}>✉️</span>
               <div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px', marginBottom: '4px' }}>Email</div>
+                <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '12px', marginBottom: '4px' }}>{getTranslation('email')}</div>
                 <div style={{ color: 'white', fontSize: '15px', lineHeight: '1.5' }}>
                   {businessData.email}
                 </div>
@@ -311,7 +335,7 @@ const Directions = () => {
             onMouseLeave={(e) => e.target.style.backgroundColor = '#3f51b5'}
             onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(businessData.address)}`, '_blank')}
             >
-              <span>🧭</span> Get Directions
+              <span>🧭</span> {getTranslation('getDirections')}
             </button>
             <button style={{
               backgroundColor: 'transparent',
@@ -339,7 +363,7 @@ const Directions = () => {
             }}
             onClick={() => window.open(`tel:${businessData.contactNumber}`, '_self')}
             >
-              <span>📱</span> Call Us
+              <span>📱</span> {getTranslation('callUs')}
             </button>
           </div>
         </div>
@@ -359,7 +383,7 @@ const Directions = () => {
             alignItems: 'center',
             gap: '10px'
           }}>
-            <span style={{ fontSize: '20px' }}>🕒</span> Business Hours
+            <span style={{ fontSize: '20px' }}>🕒</span> {getTranslation('businessHours')}
           </h3>
           
           <div style={{
@@ -396,7 +420,7 @@ const Directions = () => {
                       borderRadius: '12px',
                       fontWeight: '500'
                     }}>
-                      Today
+                      {getTranslation('today')}
                     </span>
                   )}
                 </div>
@@ -425,14 +449,14 @@ const Directions = () => {
               marginBottom: '12px'
             }}>
               <span style={{ fontSize: '20px' }}>ℹ️</span>
-              <h4 style={{ color: 'white', margin: 0, fontSize: '16px' }}>Business Information</h4>
+              <h4 style={{ color: 'white', margin: 0, fontSize: '16px' }}>{getTranslation('businessInformation')}</h4>
             </div>
             <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', lineHeight: '1.6' }}>
               <p style={{ margin: '0 0 8px 0' }}>
-                <strong>Category:</strong> {businessData.category}
+                <strong>{getTranslation('category')}:</strong> {businessData.category}
               </p>
               <p style={{ margin: '0 0 8px 0' }}>
-                <strong>Owner:</strong> {businessData.ownerName}
+                <strong>{getTranslation('owner')}:</strong> {businessData.ownerName}
               </p>
               {businessData.description && (
                 <p style={{ margin: '8px 0 0 0' }}>
@@ -453,8 +477,82 @@ const Directions = () => {
           }}>
             <span style={{ fontSize: '18px' }}>💡</span>
             <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px', lineHeight: '1.5' }}>
-              Our hours may vary on special occasions and holidays. 
-              Please call us for the most up-to-date information.
+              {getTranslation('specialNotice')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{
+        padding: '30px'
+      }}>
+        {/* Map */}
+        <div style={{
+          marginBottom: '30px',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+        }}>
+          <iframe
+            src={mapUrl}
+            width="100%"
+            height="400"
+            style={{ border: 0 }}
+            allowFullScreen=""
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
+
+        {/* Transportation Information */}
+        <div style={{
+          marginTop: '30px',
+          backgroundColor: 'rgba(40, 44, 68, 0.8)',
+          borderRadius: '12px',
+          padding: '20px',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+        }}>
+          <h2 style={{
+            color: 'white',
+            fontSize: '20px',
+            margin: '0 0 15px 0'
+          }}>
+            {getTranslation('transportation')}
+          </h2>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '20px'
+          }}>
+            <div>
+              <h3 style={{
+                color: 'white',
+                fontSize: '16px',
+                margin: '0 0 10px 0'
+              }}>
+                {getTranslation('parking')}
+              </h3>
+              <p style={{
+                color: 'rgba(255, 255, 255, 0.8)',
+                margin: '0'
+              }}>
+                {getTranslation('parkingDescription')}
+              </p>
+            </div>
+            <div>
+              <h3 style={{
+                color: 'white',
+                fontSize: '16px',
+                margin: '0 0 10px 0'
+              }}>
+                {getTranslation('publicTransport')}
+              </h3>
+              <p style={{
+                color: 'rgba(255, 255, 255, 0.8)',
+                margin: '0'
+              }}>
+                {getTranslation('publicTransportDescription')}
+              </p>
             </div>
           </div>
         </div>

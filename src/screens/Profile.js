@@ -1,6 +1,28 @@
 import React, { useState, useEffect } from "react";
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Profile = () => {
+  const { translations, isEnglish } = useLanguage();
+  const t = translations?.menu?.profile;
+
+  // Helper function to get the correct translation
+  const getTranslation = (key) => {
+    if (!t) return key;
+    
+    // Split the key by dots to handle nested translations
+    const keys = key.split('.');
+    let current = t;
+    
+    // Navigate through the nested structure
+    for (const k of keys) {
+      if (!current[k]) return key;
+      current = current[k];
+    }
+    
+    // Return the correct language version
+    return isEnglish ? current.en : current.tr;
+  };
+
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,7 +35,7 @@ const Profile = () => {
         // Get user data from localStorage
         const storedUserData = localStorage.getItem("userData");
         if (!storedUserData) {
-          throw new Error("No user data found. Please log in again.");
+          throw new Error(getTranslation('notLoggedIn.message'));
         }
         
         // Parse the stored data
@@ -21,14 +43,14 @@ const Profile = () => {
         const businessId = parsedUserData.businessID || parsedUserData.id;
         
         if (!businessId) {
-          throw new Error("Business ID not found in user data.");
+          throw new Error(getTranslation('error.businessIdNotFound'));
         }
         
         // Fetch the business data using the ID from localStorage
         const response = await fetch(`https://nokta-appservice.azurewebsites.net/api/Business/${businessId}`);
         
         if (!response.ok) {
-          throw new Error(`Failed to fetch business data: ${response.status}`);
+          throw new Error(getTranslation('error.fetchFailed'));
         }
         
         const data = await response.json();
@@ -55,6 +77,7 @@ const Profile = () => {
 
   // Format date to a readable format
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -85,14 +108,14 @@ const Profile = () => {
         fontSize: '24px', 
         marginBottom: '15px' 
       }}>
-        Please Log In to View Your Profile
+        {getTranslation('notLoggedIn.title')}
       </h2>
       <p style={{ 
         color: 'rgba(255, 255, 255, 0.7)',
         marginBottom: '25px',
         lineHeight: '1.5'
       }}>
-        You need to be logged in to access your business profile information.
+        {getTranslation('notLoggedIn.message')}
       </p>
       <button style={{
         backgroundColor: '#3f51b5',
@@ -104,18 +127,18 @@ const Profile = () => {
         fontWeight: 'bold',
         fontSize: '16px'
       }} onClick={() => window.location.href = '/login'}>
-        Go to Login
+        {getTranslation('notLoggedIn.loginButton')}
       </button>
     </div>
   );
 
   // Error types with corresponding UI
   const getErrorContent = (errorMessage) => {
-    if (errorMessage.includes("No user data found") || errorMessage.includes("Please log in")) {
+    if (errorMessage.includes(getTranslation('notLoggedIn.message'))) {
       return <NotLoggedInMessage />;
     }
     
-    if (errorMessage.includes("Business ID not found")) {
+    if (errorMessage.includes(getTranslation('error.businessIdNotFound'))) {
       return (
         <div style={{ 
           backgroundColor: 'rgba(28, 32, 55, 0.7)', 
@@ -144,7 +167,7 @@ const Profile = () => {
             }}>
               ⚠️
             </span>
-            Profile Data Issue
+            {getTranslation('error.profileDataIssue')}
           </h1>
           <div style={{
             backgroundColor: 'rgba(244, 67, 54, 0.1)', 
@@ -152,7 +175,7 @@ const Profile = () => {
             borderRadius: '8px',
             color: 'white'
           }}>
-            <p>Your account doesn't seem to be properly set up as a business account. Please contact support for assistance.</p>
+            <p>{getTranslation('error.contactSupport')}</p>
           </div>
           <button style={{
             backgroundColor: '#3f51b5',
@@ -164,7 +187,7 @@ const Profile = () => {
             fontWeight: 'bold',
             marginTop: '20px'
           }} onClick={() => window.location.reload()}>
-            Try Again
+            {getTranslation('tryAgain')}
           </button>
         </div>
       );
@@ -199,7 +222,7 @@ const Profile = () => {
           }}>
             ⚠️
           </span>
-          Error Loading Profile
+          {getTranslation('error.loadingProfile')}
         </h1>
         <div style={{
           backgroundColor: 'rgba(244, 67, 54, 0.1)', 
@@ -219,7 +242,7 @@ const Profile = () => {
           fontWeight: 'bold',
           marginTop: '20px'
         }} onClick={() => window.location.reload()}>
-          Try Again
+          {getTranslation('tryAgain')}
         </button>
       </div>
     );
@@ -234,30 +257,32 @@ const Profile = () => {
       <div style={{ 
         backgroundColor: 'rgba(28, 32, 55, 0.7)', 
         borderRadius: '8px', 
-        padding: '20px',
+        padding: '40px',
         margin: '20px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '300px'
+        textAlign: 'center',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
       }}>
-        <div style={{
+        <div style={{ 
+          color: 'white', 
+          fontSize: '18px',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
-          gap: '15px'
+          justifyContent: 'center',
+          gap: '10px'
         }}>
           <div style={{
-            width: '40px',
-            height: '40px',
+            width: '20px',
+            height: '20px',
+            border: '2px solid rgba(255,255,255,0.3)',
+            borderTop: '2px solid white',
             borderRadius: '50%',
-            border: '3px solid rgba(255, 255, 255, 0.3)',
-            borderTopColor: '#3f51b5',
             animation: 'spin 1s linear infinite'
           }}></div>
-          <div style={{ color: 'white' }}>Loading business profile...</div>
+          {getTranslation('loading')}
         </div>
+        <style>
+          {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
+        </style>
       </div>
     );
   }
@@ -274,438 +299,312 @@ const Profile = () => {
 
   return (
     <div style={{ 
-      backgroundColor: 'rgba(28, 32, 55, 0.7)', 
-      borderRadius: '8px', 
-      padding: '30px',
-      margin: '20px auto',
-      maxWidth: '1200px',
-      width: '95%',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+      backgroundColor: '#282c44', // Main background color
+      minHeight: '100vh', 
+      padding: '20px',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'flex-start', 
+      position: 'relative'
     }}>
-      {/* Login status indicator */}
+      {/* "Logged in as" banner */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        marginBottom: '15px'
-      }}>
-        <div style={{
-          backgroundColor: 'rgba(76, 175, 80, 0.2)',
-          color: '#66bb6a',
-          padding: '8px 12px',
-          borderRadius: '4px',
-          fontSize: '13px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px'
-        }}>
-          <span style={{ fontSize: '10px' }}>●</span>
-          Logged in as {userData.name || userData.ownerName}
-        </div>
-      </div>
-      
-      <h1 style={{ 
-        color: 'white', 
-        fontSize: '32px', 
+        position: 'absolute',
+        top: '30px',
+        right: '30px',
+        backgroundColor: '#4CAF50',
+        color: 'white',
+        padding: '8px 15px',
+        borderRadius: '5px',
+        fontSize: '14px',
         fontWeight: 'bold',
-        marginBottom: '25px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
-        paddingBottom: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-        letterSpacing: '0.5px'
+        zIndex: 10
       }}>
-        <span style={{ 
-          fontSize: '28px', 
-          marginRight: '15px',
-          backgroundColor: 'rgba(63, 81, 181, 0.25)',
-          padding: '8px',
-          borderRadius: '8px',
-          display: 'inline-flex'
-        }}>
-          👤
-        </span>
-        Business Profile
-      </h1>
-      
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-        gap: '25px',
-        marginBottom: '30px'
+        • Logged in as Fine Dining - Cumba
+      </div>
+
+      {/* Main Profile Card */}
+      <div style={{ 
+        backgroundColor: 'rgba(28, 32, 55, 0.95)', 
+        borderRadius: '12px', 
+        width: '90%', 
+        maxWidth: '800px', 
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+        overflow: 'hidden',
+        marginTop: '50px'
       }}>
-        {/* Profile Summary Card */}
+        {/* Business Profile Header Section */}
         <div style={{
-          backgroundColor: 'rgba(40, 44, 68, 0.7)',
-          borderRadius: '8px',
-          padding: '25px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
+          backgroundColor: '#383c5a',
+          padding: '30px',
+          textAlign: 'center',
+          position: 'relative'
         }}>
-          <div style={{
-            width: '120px',
-            height: '120px',
-            borderRadius: '60px',
-            backgroundColor: '#3f51b5',
+          {/* Business Profile Title */}
+          <h2 style={{
+            color: 'white',
+            fontSize: '28px',
+            fontWeight: '600',
+            margin: '0 0 20px 0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white',
-            fontSize: '36px',
-            fontWeight: 'bold',
-            marginBottom: '15px',
-            border: '4px solid rgba(255, 255, 255, 0.2)',
-            position: 'relative'
+            gap: '10px'
           }}>
-            {userData.name.charAt(0)}
-            <div style={{
-              position: 'absolute',
-              bottom: '-5px',
-              right: '-5px',
-              backgroundColor: 'rgba(76, 175, 80, 0.9)',
-              color: 'white',
-              borderRadius: '12px',
-              padding: '2px 8px',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-              border: '2px solid rgba(255, 255, 255, 0.8)'
-            }}>
-              ID: {userData.businessID}
-            </div>
-          </div>
-          
-          <h2 style={{ 
-            color: 'white', 
-            fontSize: '20px',
-            marginBottom: '5px',
-            textAlign: 'center'
-          }}>
-            {userData.name}
+            <span style={{ fontSize: '24px' }}>👤</span>
+            {getTranslation('title')}
           </h2>
-          
-          <p style={{ 
-            color: 'rgba(255, 255, 255, 0.7)', 
-            marginBottom: '15px',
-            textAlign: 'center'
-          }}>
-            {userData.category}
-          </p>
-          
+
+          {/* Profile Picture / Initial */}
           <div style={{
-            display: 'flex',
-            gap: '10px',
-            marginBottom: '20px',
-            flexWrap: 'wrap',
-            justifyContent: 'center'
-          }}>
-            <span style={{
-              backgroundColor: 'rgba(33, 150, 243, 0.2)',
-              color: '#42a5f5',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              fontSize: '12px',
-              fontWeight: 'bold'
-            }}>
-              {formatTime(userData.openingHour)} - {formatTime(userData.closingHour)}
-            </span>
-            <span style={{
-              backgroundColor: 'rgba(76, 175, 80, 0.2)',
-              color: '#66bb6a',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              fontSize: '12px',
-              fontWeight: 'bold'
-            }}>
-              Template #{userData.webSiteTemplateID}
-            </span>
-          </div>
-          
-          <button style={{
+            width: '100px',
+            height: '100px',
+            borderRadius: '50%',
             backgroundColor: '#3f51b5',
             color: 'white',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer',
+            fontSize: '48px',
             fontWeight: 'bold',
-            marginBottom: '10px',
-            width: '100%'
-          }}>
-            Edit Profile
-          </button>
-          
-          <button style={{
-            backgroundColor: 'transparent',
-            color: 'white',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            width: '100%'
-          }}>
-            Change Password
-          </button>
-        </div>
-        
-        {/* Business Details Card */}
-        <div style={{
-          backgroundColor: 'rgba(40, 44, 68, 0.7)',
-          borderRadius: '8px',
-          padding: '25px'
-        }}>
-          <h3 style={{ 
-            color: 'white', 
-            marginBottom: '20px', 
-            fontSize: '20px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px'
+            justifyContent: 'center',
+            margin: '0 auto 15px auto',
+            border: '3px solid rgba(255, 255, 255, 0.3)'
           }}>
-            <span>📋</span> Business Details
-          </h3>
-          
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '15px'
-          }}>
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '13px',
-                display: 'block',
-                marginBottom: '8px'
-              }}>
-                Owner Name
-              </label>
-              <div style={{ 
-                color: 'white',
-                fontSize: '15px',
-                fontWeight: '500'
-              }}>
-                {userData.ownerName}
-              </div>
-            </div>
-            
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '13px',
-                display: 'block',
-                marginBottom: '8px'
-              }}>
-                Email Address
-              </label>
-              <div style={{ 
-                color: 'white',
-                fontSize: '15px',
-                fontWeight: '500'
-              }}>
-                {userData.email}
-              </div>
-            </div>
-            
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '13px',
-                display: 'block',
-                marginBottom: '8px'
-              }}>
-                Phone Number
-              </label>
-              <div style={{ 
-                color: 'white',
-                fontSize: '15px',
-                fontWeight: '500'
-              }}>
-                {userData.contactNumber}
-              </div>
-            </div>
-            
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '13px',
-                display: 'block',
-                marginBottom: '8px'
-              }}>
-                Business Address
-              </label>
-              <div style={{ 
-                color: 'white',
-                fontSize: '15px',
-                fontWeight: '500'
-              }}>
-                {userData.address}
-              </div>
-            </div>
-            
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '13px',
-                display: 'block',
-                marginBottom: '8px'
-              }}>
-                Member Since
-              </label>
-              <div style={{ 
-                color: 'white',
-                fontSize: '15px',
-                fontWeight: '500'
-              }}>
-                {formatDate(userData.createdAt)}
-              </div>
-            </div>
-            
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '13px',
-                display: 'block',
-                marginBottom: '8px'
-              }}>
-                Description
-              </label>
-              <div style={{ 
-                color: 'white',
-                fontSize: '15px',
-                fontWeight: '500',
-                lineHeight: '1.5'
-              }}>
-                {userData.description}
-              </div>
-            </div>
+            {userData?.name ? userData.name.charAt(0).toUpperCase() : 'F'}
           </div>
-        </div>
-        
-        {/* Features Card */}
-        <div style={{
-          backgroundColor: 'rgba(40, 44, 68, 0.7)',
-          borderRadius: '8px',
-          padding: '25px'
-        }}>
-          <h3 style={{ 
-            color: 'white', 
-            marginBottom: '20px', 
-            fontSize: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}>
-            <span>✨</span> Activated Features
-          </h3>
-          
+
+          {/* ID Tag */}
           <div style={{
-            backgroundColor: 'rgba(63, 81, 181, 0.2)',
-            borderRadius: '6px',
-            padding: '15px',
-            marginBottom: '20px'
+            backgroundColor: '#8BC34A',
+            color: 'white',
+            padding: '4px 10px',
+            borderRadius: '15px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            display: 'inline-block',
+            marginTop: '-40px',
+            position: 'relative',
+            zIndex: 5
           }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '10px'
-            }}>
-              <div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '12px' }}>
-                  Opening Hours
-                </div>
-                <div style={{ color: 'white', fontSize: '18px', fontWeight: 'bold' }}>
-                  {formatTime(userData.openingHour)} - {formatTime(userData.closingHour)}
-                </div>
-              </div>
-              <div style={{
-                backgroundColor: 'rgba(76, 175, 80, 0.2)',
-                color: '#4caf50',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}>
-                Active
-              </div>
-            </div>
-            
-            <div style={{ marginBottom: '10px' }}>
-              <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '12px' }}>
-                Template ID
-              </div>
-              <div style={{ color: 'white', fontSize: '14px' }}>
-                #{userData.webSiteTemplateID}
-              </div>
-            </div>
-            
-            <button style={{
+            ID: {userData?.businessID || userData?.id || 'N/A'}
+          </div>
+
+          <h3 style={{ color: 'white', fontSize: '24px', margin: '20px 0 5px 0' }}>{userData?.name || 'Fine Dining - Cumba'}</h3>
+          <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '16px', margin: '0 0 15px 0' }}>{userData?.category || 'Food & Beverage'}</p>
+
+          {/* Opening Hours & Template ID */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '25px' }}>
+            <span style={{
               backgroundColor: '#3f51b5',
               color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              width: '100%',
+              padding: '6px 12px',
+              borderRadius: '20px',
               fontSize: '14px'
             }}>
-              Manage Features
+              {userData?.openingHour && userData?.closingHour ? `${formatTime(userData.openingHour)} - ${formatTime(userData.closingHour)}` : 'N/A'}
+            </span>
+            <span style={{
+              backgroundColor: '#8BC34A',
+              color: 'white',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              fontSize: '14px'
+            }}>
+              Template ID #{userData?.templateID || 'N/A'}
+            </span>
+          </div>
+
+          {/* Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+            <button
+              style={{
+                backgroundColor: '#3f51b5',
+                color: 'white',
+                border: '1px solid #3f51b5',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                minWidth: '180px',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#303f9f'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#3f51b5'}
+            >
+              {getTranslation('actions.editProfile')}
+            </button>
+            <button
+              style={{
+                backgroundColor: 'transparent',
+                color: 'white',
+                border: '1px solid #3f51b5',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                minWidth: '180px',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(63, 81, 181, 0.2)'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+            >
+              {getTranslation('actions.changePassword')}
             </button>
           </div>
-          
-          <h4 style={{ 
+        </div>
+
+        {/* Business Details Section */}
+        <div style={{
+          backgroundColor: 'rgba(40, 44, 68, 0.8)',
+          borderRadius: '0',
+          padding: '30px',
+          marginBottom: '0',
+          boxShadow: 'none',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          <h2 style={{ 
             color: 'white', 
-            fontSize: '14px',
-            marginBottom: '10px'
-          }}>
-            Activated Features:
-          </h4>
-          
-          <div style={{
+            marginBottom: '20px', 
+            fontSize: '20px',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span style={{ fontSize: '24px' }}>📁</span> {getTranslation('businessInfo.title')}
+          </h2>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '20px'
+          }}>
+            <div>
+              <label style={{ 
+                color: 'rgba(255, 255, 255, 0.6)', 
+                fontSize: '14px', 
+                marginBottom: '8px',
+                display: 'block'
+              }}>
+                {getTranslation('businessInfo.owner')}
+              </label>
+              <div style={{ color: 'white', fontSize: '16px' }}>{userData?.ownerName || 'N/A'}</div>
+            </div>
+
+            <div>
+              <label style={{ 
+                color: 'rgba(255, 255, 255, 0.6)', 
+                fontSize: '14px', 
+                marginBottom: '8px',
+                display: 'block'
+              }}>
+                {getTranslation('businessInfo.email')}
+              </label>
+              <div style={{ color: 'white', fontSize: '16px' }}>{userData?.email || 'N/A'}</div>
+            </div>
+
+            <div>
+              <label style={{ 
+                color: 'rgba(255, 255, 255, 0.6)', 
+                fontSize: '14px', 
+                marginBottom: '8px',
+                display: 'block'
+              }}>
+                {getTranslation('businessInfo.phone')}
+              </label>
+              <div style={{ color: 'white', fontSize: '16px' }}>{userData?.contactNumber || 'N/A'}</div>
+            </div>
+
+            <div>
+              <label style={{ 
+                color: 'rgba(255, 255, 255, 0.6)', 
+                fontSize: '14px', 
+                marginBottom: '8px',
+                display: 'block'
+              }}>
+                {getTranslation('businessInfo.address')}
+              </label>
+              <div style={{ color: 'white', fontSize: '16px' }}>{userData?.address || 'N/A'}</div>
+            </div>
+
+            <div>
+              <label style={{ 
+                color: 'rgba(255, 255, 255, 0.6)', 
+                fontSize: '14px', 
+                marginBottom: '8px',
+                display: 'block'
+              }}>
+                {getTranslation('businessInfo.memberSince')}
+              </label>
+              <div style={{ color: 'white', fontSize: '16px' }}>{formatDate(userData?.memberSince)}</div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '20px' }}>
+            <label style={{ 
+              color: 'rgba(255, 255, 255, 0.6)', 
+              fontSize: '14px', 
+              marginBottom: '8px',
+              display: 'block'
+            }}>
+              {getTranslation('businessInfo.description')}
+            </label>
+            <div style={{ color: 'white', fontSize: '16px' }}>{userData?.description || '-'}</div>
+          </div>
+        </div>
+
+        {/* Activated Features Section */}
+        <div style={{
+          backgroundColor: 'rgba(40, 44, 68, 0.8)',
+          borderRadius: '0',
+          padding: '30px',
+          marginBottom: '0',
+          boxShadow: 'none',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          <h2 style={{ 
+            color: 'white', 
+            marginBottom: '20px', 
+            fontSize: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span style={{ fontSize: '24px' }}>✨</span> {getTranslation('activatedFeatures.title')}
+          </h2>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '15px'
           }}>
             {features.map((feature, index) => (
               <div key={index} style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                padding: '15px',
+                borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                color: feature.isActive ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.4)',
-                fontSize: '15px',
-                padding: '8px 0'
+                gap: '10px'
               }}>
                 <span style={{ 
-                  color: feature.isActive ? '#4caf50' : '#f44336'
+                  fontSize: '20px', 
+                  color: feature.isActive ? '#8BC34A' : 'gray'
                 }}>
-                  {feature.isActive ? '✓' : '✕'}
-                </span> 
-                {feature.name}
+                  {feature.isActive ? '✓' : '✗'}
+                </span>
+                <div style={{ color: 'white' }}>{getTranslation(`services.${feature.name.toLowerCase().replace(/ /g, '')}`)}</div>
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      <div style={{ 
-        marginTop: '20px', 
-        textAlign: 'center',
-        color: 'rgba(255, 255, 255, 0.5)',
-        fontSize: '14px'
-      }}>
-        Last updated: {new Date().toLocaleDateString()}
+        {/* Last updated text */}
+        <div style={{ textAlign: 'right', padding: '15px 30px', color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px' }}>
+          {getTranslation('lastUpdated')} {formatDate(new Date())}
+        </div>
       </div>
-      
-      {/* Add animation for loading spinner */}
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
     </div>
   );
 };

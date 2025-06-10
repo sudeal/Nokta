@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Appointments = () => {
+  const { translations, isEnglish } = useLanguage();
+  const t = translations.appointments;
+
   const [userId, setUserId] = useState(null);
   const [businessName, setBusinessName] = useState(null);
   const [appointments, setAppointments] = useState([]);
@@ -1306,7 +1310,15 @@ const Appointments = () => {
 
   // Generate days of the week header
   const renderDaysOfWeek = () => {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const days = [
+      t.calendar.days.sun,
+      t.calendar.days.mon,
+      t.calendar.days.tue,
+      t.calendar.days.wed,
+      t.calendar.days.thu,
+      t.calendar.days.fri,
+      t.calendar.days.sat
+    ];
     return (
       <div style={styles.calendarWeekDays}>
         {days.map(day => (
@@ -1521,7 +1533,9 @@ const Appointments = () => {
   // Get current month and year for display
   const currentMonthYear = () => {
     const date = new Date(selectedDate);
-    return date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const month = date.toLocaleString(isEnglish ? 'en-US' : 'tr-TR', { month: 'long' });
+    const year = date.getFullYear();
+    return t.calendar.monthYear.replace('{month}', month).replace('{year}', year);
   };
 
   // Render action buttons for calendar appointments with consistent layout
@@ -1529,7 +1543,6 @@ const Appointments = () => {
     const { appointmentID, status } = appointment;
     const isLoading = actionLoading === appointmentID;
     
-    // If expired, show only remove button (should not happen as we filter these out)
     if (isExpired(appointment.appointmentDateTime)) {
       return (
         <div style={{ 
@@ -1548,7 +1561,7 @@ const Appointments = () => {
             onClick={() => deleteAppointment(appointmentID)}
             disabled={isLoading}
           >
-            {isLoading ? <span>⏳</span> : '🗑️ Remove'}
+            {isLoading ? <span>⏳</span> : `🗑️ ${t.appointment.actions.remove}`}
           </button>
         </div>
       );
@@ -1779,7 +1792,7 @@ const Appointments = () => {
           }}>
             📅
           </span>
-          Appointments
+          {t.title}
         </h2>
       </div>
 
@@ -1808,22 +1821,48 @@ const Appointments = () => {
         {renderDaysOfWeek()}
         {renderCalendarDays()}
         
-        {dateAppointments.length > 0 && (
+        {dateLoading ? (
+          <div style={styles.loading}>
+            <div style={styles.spinner}></div>
+            <p style={{ marginTop: '16px' }}>{t.loadingDate}</p>
+          </div>
+        ) : (
           <div style={styles.dateAppointmentsContainer}>
             <div style={styles.dateAppointmentsHeader}>
               <span style={styles.dateIcon}>📅</span>
-              <span>Appointments for {formatDateForDisplay(selectedDate)}</span>
+              <span>{t.calendar.appointmentsFor.replace('{date}', formatDateForDisplay(selectedDate))}</span>
             </div>
             
-            {dateLoading ? (
-              <div style={styles.loading}>
-                <div style={styles.spinner}></div>
-                <p style={{ marginTop: '16px' }}>Loading appointments for selected date...</p>
+            {dateAppointments.length === 0 ? (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '16px',
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: '14px',
+                marginTop: '16px',
+                backgroundColor: 'rgba(40, 44, 68, 0.5)',
+                borderRadius: '8px',
+                border: '1px dashed rgba(255, 255, 255, 0.1)'
+              }}>
+                <span style={{
+                  display: 'block',
+                  fontSize: '18px', 
+                  marginBottom: '4px',
+                  opacity: '0.8'
+                }}>📆</span>
+                {t.calendar.noAppointmentsFor.replace('{date}', isToday(selectedDate) ? t.tabs.today : formatDateForDisplay(selectedDate))}
+                <div style={{ 
+                  fontSize: '12px', 
+                  marginTop: '8px', 
+                  color: 'rgba(255, 255, 255, 0.5)' 
+                }}>
+                  {t.expiredNote}
+                </div>
               </div>
             ) : (
               <div>
                 {dateAppointments
-                  .filter(app => !isExpired(app.appointmentDateTime)) // Extra filter to ensure no expired appointments
+                  .filter(app => !isExpired(app.appointmentDateTime))
                   .map(app => 
                     <div key={app.appointmentID}>
                       {renderCalendarAppointmentCard(app)}
@@ -1834,40 +1873,12 @@ const Appointments = () => {
             )}
           </div>
         )}
-        
-        {dateAppointments.length === 0 && !dateLoading && (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '16px',
-            color: 'rgba(255, 255, 255, 0.7)',
-            fontSize: '14px',
-            marginTop: '16px',
-            backgroundColor: 'rgba(40, 44, 68, 0.5)',
-            borderRadius: '8px',
-            border: '1px dashed rgba(255, 255, 255, 0.1)'
-          }}>
-            <span style={{
-              display: 'block',
-              fontSize: '18px', 
-              marginBottom: '4px',
-              opacity: '0.8'
-            }}>📆</span>
-            No appointment found for {isToday(selectedDate) ? "today" : formatDateForDisplay(selectedDate)}
-            <div style={{ 
-              fontSize: '12px', 
-              marginTop: '8px', 
-              color: 'rgba(255, 255, 255, 0.5)' 
-            }}>
-              Note: Expired appointments are shown in the "Expired Appointments" tab
-            </div>
-          </div>
-        )}
       </div>
 
       {loading ? (
         <div style={styles.loading}>
           <div style={styles.spinner}></div>
-          <p style={{ marginTop: '16px' }}>Loading appointments...</p>
+          <p style={{ marginTop: '16px' }}>{t.loading}</p>
         </div>
       ) : error ? (
         <div style={{ 
@@ -1882,7 +1893,12 @@ const Appointments = () => {
         <div>
           {/* Tabs Navigation */}
           <div style={styles.tabsContainer}>
-            {tabs.map(tab => (
+            {[
+              { id: 'today', label: t.tabs.today, icon: '📅', count: todayAppointments.length },
+              { id: 'pending', label: t.tabs.pending, icon: '⏳', count: pendingAppointments.length },
+              { id: 'expired', label: t.tabs.expired, icon: '⌛', count: expiredAppointments.length },
+              { id: 'all', label: t.tabs.all, icon: '📋', count: allNonPendingAppointments.length }
+            ].map(tab => (
               <button 
                 key={tab.id}
                 style={{
@@ -1916,7 +1932,7 @@ const Appointments = () => {
             {activeTab === 'today' && (
               <div>
                 {todayAppointments.length === 0 ? (
-                  <div style={styles.emptySection}>No appointments found for today</div>
+                  <div style={styles.emptySection}>{t.noAppointmentsToday}</div>
                 ) : (
                   todayAppointments.map(app => 
                     <div key={app.appointmentID}>
@@ -1932,13 +1948,13 @@ const Appointments = () => {
               <div>
                 {pendingAppointments.length === 0 ? (
                   <div style={styles.emptySection}>
-                    No new appointments requiring approval
+                    {t.noPendingAppointments}
                     <div style={{ 
                       fontSize: '12px', 
                       marginTop: '8px', 
                       color: 'rgba(255, 255, 255, 0.5)' 
                     }}>
-                      Note: Expired pending appointments are shown in the Expired tab
+                      {t.pendingExpiredNote}
                     </div>
                   </div>
                 ) : (
@@ -1955,7 +1971,7 @@ const Appointments = () => {
             {activeTab === 'expired' && (
               <div>
                 {expiredAppointments.length === 0 ? (
-                  <div style={styles.emptySection}>No expired appointments found</div>
+                  <div style={styles.emptySection}>{t.noExpiredAppointments}</div>
                 ) : (
                   expiredAppointments.map(app => 
                     <div key={app.appointmentID}>
@@ -1970,7 +1986,7 @@ const Appointments = () => {
             {activeTab === 'all' && (
               <div>
                 {sortedAppointments.length === 0 ? (
-                  <div style={styles.emptySection}>No completed or accepted appointments found</div>
+                  <div style={styles.emptySection}>{t.noCompletedAppointments}</div>
                 ) : (
                   sortedAppointments.map(app => 
                     <div key={app.appointmentID}>
@@ -1989,18 +2005,16 @@ const Appointments = () => {
         <div style={styles.modalOverlay} onClick={() => setShowConfirmReject(false)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalIcon}>⚠️</div>
-            <h3 style={styles.modalTitle}>Reject Appointment</h3>
+            <h3 style={styles.modalTitle}>{t.confirmations.cancel.title}</h3>
             <p style={styles.modalMessage}>
-              Are you sure you want to reject appointment #{appointmentToReject.id}? 
-              <br />
-              This action cannot be undone.
+              {t.confirmations.cancel.message.replace('{id}', appointmentToReject.id)}
             </p>
             <div style={styles.modalButtons}>
               <button 
                 style={styles.cancelButton} 
                 onClick={() => setShowConfirmReject(false)}
               >
-                Cancel
+                {t.appointment.actions.keep}
               </button>
               <button 
                 style={styles.confirmButton} 
@@ -2010,7 +2024,7 @@ const Appointments = () => {
                   setAppointmentToReject(null);
                 }}
               >
-                Reject
+                {t.appointment.actions.reject}
               </button>
             </div>
           </div>
@@ -2024,29 +2038,19 @@ const Appointments = () => {
             <div style={styles.modalIcon}>⚠️</div>
             <h3 style={styles.modalTitle}>
               {appointmentToDelete.appointment && appointmentToDelete.appointment.status === 'Accepted' ? 
-                'Complete & Remove Appointment' : 'Cancel Appointment'}
+                t.confirmations.completeAndRemove.title : t.confirmations.cancel.title}
             </h3>
             <p style={styles.modalMessage}>
-              {appointmentToDelete.appointment && appointmentToDelete.appointment.status === 'Accepted' ? (
-                <>
-                  Are you sure you want to mark appointment #{appointmentToDelete.id} as completed and remove it?
-                  <br />
-                  This will delete the appointment from your list.
-                </>
-              ) : (
-                <>
-                  Are you sure you want to cancel appointment #{appointmentToDelete.id}?
-                  <br />
-                  This will delete the appointment and cannot be undone.
-                </>
-              )}
+              {appointmentToDelete.appointment && appointmentToDelete.appointment.status === 'Accepted' ? 
+                t.confirmations.completeAndRemove.message.replace('{id}', appointmentToDelete.id) :
+                t.confirmations.cancel.message.replace('{id}', appointmentToDelete.id)}
             </p>
             <div style={styles.modalButtons}>
               <button 
                 style={styles.cancelButton} 
                 onClick={() => setShowConfirmDelete(false)}
               >
-                Keep
+                {t.appointment.actions.keep}
               </button>
               <button 
                 style={styles.confirmButton} 
@@ -2057,7 +2061,7 @@ const Appointments = () => {
                 }}
               >
                 {appointmentToDelete.appointment && appointmentToDelete.appointment.status === 'Accepted' ? 
-                  'Complete & Remove' : 'Delete'}
+                  t.appointment.actions.completeAndRemove : t.appointment.actions.delete}
               </button>
             </div>
           </div>
