@@ -1,6 +1,32 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../contexts/LanguageContext";
 
+// Türkiye saatine göre formatla
+const formatTurkishTime = (dateString) => {
+  const date = new Date(dateString);
+  const offset = date.getTimezoneOffset() * 60000; // Offset in milliseconds
+  const turkishTime = new Date(date.getTime() + offset + 3 * 3600000); // Add 3 hours for Turkey
+  return turkishTime.toLocaleTimeString('tr-TR', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    timeZone: 'Europe/Istanbul'
+  });
+};
+
+const formatTurkishDateTime = (dateString) => {
+  const date = new Date(dateString);
+  const offset = date.getTimezoneOffset() * 60000; // Offset in milliseconds
+  const turkishTime = new Date(date.getTime() + offset + 3 * 3600000); // Add 3 hours for Turkey
+  return turkishTime.toLocaleString('tr-TR', {
+    timeZone: 'Europe/Istanbul',
+    day: '2-digit',
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 const Messages = () => {
   const { translations } = useLanguage();
   const [allMessages, setAllMessages] = useState([]); // Tüm mesajlar (business endpointinden)
@@ -51,7 +77,9 @@ const Messages = () => {
     fetch(`https://nokta-appservice.azurewebsites.net/api/Messages/conversation/${selectedUser}/${businessID}`)
       .then(res => res.json())
       .then(data => {
-        setMessages(data.messages || []);
+        // Mesajları tarihe göre artan şekilde sırala (eski mesajlar üstte, yeni mesajlar altta)
+        const sortedMessages = (data.messages || []).sort((a, b) => new Date(a.date) - new Date(b.date));
+        setMessages(sortedMessages);
         setLoading(false);
       })
       .catch(err => {
@@ -84,7 +112,11 @@ const Messages = () => {
       // Mesajı tekrar çek
       fetch(`https://nokta-appservice.azurewebsites.net/api/Messages/conversation/${selectedUser}/${businessID}`)
         .then(res => res.json())
-        .then(data => setMessages(data.messages || []));
+        .then(data => {
+          // Mesajları tarihe göre artan şekilde sırala (eski mesajlar üstte, yeni mesajlar altta)
+          const sortedMessages = (data.messages || []).sort((a, b) => new Date(a.date) - new Date(b.date));
+          setMessages(sortedMessages);
+        });
     } catch (err) {
       alert(translations.messages.messageSendFailed + ' ' + err.message);
       setError(translations.messages.messageSendFailed);
@@ -107,7 +139,7 @@ const Messages = () => {
     }
   };
 
-  // Otomatik scroll-to-bottom
+  // Otomatik scroll-to-bottom (yeni mesajlar altta olduğu için)
   const messagesEndRef = useRef(null);
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -117,10 +149,33 @@ const Messages = () => {
 
   // UI
   return (
-    <div style={{ display: 'flex', height: '80vh', background: '#23284a', borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ 
+      display: 'flex', 
+      height: '85vh', 
+      background: '#23284a', 
+      borderRadius: 16, 
+      overflow: 'hidden',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+      border: '1px solid rgba(255,255,255,0.05)'
+    }}>
       {/* Sol: Userlardan gelen son mesajlar */}
-      <div style={{ width: 320, background: '#1c2037', borderRight: '1px solid #2d3257', overflowY: 'auto' }}>
-        <div style={{ padding: 24, borderBottom: '1px solid #2d3257', color: 'white', fontWeight: 600, fontSize: 22 }}>{translations.messages.title}</div>
+      <div style={{ 
+        width: 320, 
+        background: 'linear-gradient(180deg, #1c2037 0%, #181b33 100%)', 
+        borderRight: '1px solid #2d3257', 
+        overflowY: 'auto',
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#3a4063 transparent'
+      }}>
+        <div style={{ 
+          padding: 24, 
+          borderBottom: '2px solid #2d3257', 
+          color: 'white', 
+          fontWeight: 700, 
+          fontSize: 20,
+          background: 'rgba(45, 50, 87, 0.3)',
+          backdropFilter: 'blur(10px)'
+        }}>{translations.messages.title}</div>
         {loading && <div style={{ color: 'white', padding: 24 }}>{translations.messages.loading}</div>}
         {conversations.length === 0 && !loading && <div style={{ color: '#aaa', padding: 24 }}>{translations.messages.noMessages}</div>}
         {conversations.map(conv => (
@@ -128,14 +183,28 @@ const Messages = () => {
             style={{
               padding: 18,
               cursor: 'pointer',
-              background: selectedUser === conv.userID ? '#2d3257' : 'transparent',
-              borderBottom: '1px solid #23284a',
+              background: selectedUser === conv.userID ? 
+                'linear-gradient(90deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)' : 
+                'transparent',
+              borderBottom: '1px solid rgba(35, 40, 74, 0.5)',
               color: 'white',
-              fontWeight: 500
+              fontWeight: 500,
+              transition: 'all 0.2s ease',
+              borderLeft: selectedUser === conv.userID ? '4px solid #667eea' : '4px solid transparent'
+            }}
+            onMouseEnter={(e) => {
+              if (selectedUser !== conv.userID) {
+                e.target.style.background = 'rgba(45, 50, 87, 0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (selectedUser !== conv.userID) {
+                e.target.style.background = 'transparent';
+              }
             }}>
             <div style={{ fontSize: 16 }}>{conv.userName}</div>
-            <div style={{ fontSize: 13, color: '#aaa', marginTop: 4 }}>{conv.content}</div>
-            <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{conv.date && new Date(conv.date).toLocaleString()}</div>
+            <div style={{ fontSize: 13, color: '#aaa', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{conv.content}</div>
+            <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{conv.date && formatTurkishDateTime(conv.date)}</div>
           </div>
         ))}
       </div>
@@ -143,99 +212,252 @@ const Messages = () => {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#23284a' }}>
         {selectedUser ? (
           <>
-            <div style={{ padding: 18, borderBottom: '1px solid #2d3257', color: 'white', fontWeight: 600, fontSize: 18 }}>
-              {conversations.find(c => c.userID === selectedUser)?.userName || translations.messages.user} {translations.messages.conversationWith}
+            <div style={{ 
+              padding: '20px 24px', 
+              borderBottom: '2px solid #2d3257', 
+              color: 'white', 
+              fontWeight: 700, 
+              fontSize: 18,
+              background: 'rgba(45, 50, 87, 0.3)',
+              backdropFilter: 'blur(10px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12
+            }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: 16,
+                fontWeight: 700,
+                flexShrink: 0
+              }}>
+                {(conversations.find(c => c.userID === selectedUser)?.userName || 'M').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>
+                  {conversations.find(c => c.userID === selectedUser)?.userName || translations.messages.user}
+                </div>
+                <div style={{ fontSize: 12, color: '#aaa', fontWeight: 400 }}>
+                  {translations.messages.conversationWith}
+                </div>
+              </div>
             </div>
-            {/* Mesaj geçmişi - sadece kaydırılabilir, ekstra buton yok */}
+            {/* Mesaj geçmişi - geliştirilmiş tasarım */}
             <div ref={messagesEndRef} style={{
               overflowY: 'auto',
-              height: 400,
-              minHeight: 200,
-              padding: 24,
+              flex: 1,
+              padding: '16px 24px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
-              justifyContent: 'flex-end',
-              maxWidth: 600,
-              margin: '0 auto',
-              background: 'transparent'
+              gap: 12,
+              background: 'linear-gradient(180deg, #23284a 0%, #1e2142 100%)',
+              scrollBehavior: 'smooth'
             }}>
-              {loading ? <div style={{ color: 'white' }}>{translations.messages.loading}</div> :
-                messages.length === 0 ? <div style={{ color: '#aaa' }}>{translations.messages.noMessages}</div> :
-                  messages.map(msg => {
-                    const isUser = msg.userID === selectedUser;
-                    const isBusiness = msg.businessID === businessID && !isUser;
-                    return (
-                      <div key={msg.messageID} style={{
-                        display: 'flex',
-                        flexDirection: isBusiness ? 'row-reverse' : 'row',
-                        alignItems: 'flex-end',
-                        marginBottom: 2
-                      }}>
+              {loading ? (
+                <div style={{ 
+                  color: 'white', 
+                  textAlign: 'center', 
+                  padding: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10
+                }}>
+                  <div style={{
+                    width: 20,
+                    height: 20,
+                    border: '2px solid #ffffff30',
+                    borderTop: '2px solid white',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                  {translations.messages.loading}
+                </div>
+              ) : messages.length === 0 ? (
+                <div style={{ 
+                  color: '#aaa', 
+                  textAlign: 'center', 
+                  padding: 40,
+                  fontSize: 16
+                }}>{translations.messages.noMessages}</div>
+              ) : 
+                messages.map((msg, index) => {
+                  const isFromBusiness = msg.businessID === businessID;
+                  const isFromUser = msg.userID === selectedUser;
+                  
+                  // Tarih değişikliği kontrolü
+                  const showDate = index === 0 || 
+                    new Date(msg.date).toDateString() !== new Date(messages[index - 1].date).toDateString();
+                  
+                  return (
+                    <React.Fragment key={msg.messageID}>
+                      {/* Tarih ayırıcısı */}
+                      {showDate && (
                         <div style={{
-                          background: isBusiness ? '#3f51b5' : '#2d3257',
-                          color: 'white',
-                          padding: '12px 18px',
-                          borderRadius: isBusiness ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                          maxWidth: '70%',
-                          minWidth: 60,
-                          fontSize: 15,
-                          marginLeft: isBusiness ? 40 : 0,
-                          marginRight: isBusiness ? 0 : 40,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-                          wordBreak: 'break-word',
-                          marginTop: 2
+                          textAlign: 'center',
+                          margin: '20px 0 10px 0',
+                          color: '#888',
+                          fontSize: 12,
+                          fontWeight: 500
                         }}>
-                          {msg.content}
-                          <div style={{ fontSize: 11, color: '#bbb', marginTop: 6, textAlign: isBusiness ? 'right' : 'left' }}>{new Date(msg.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                          {new Date(msg.date).toLocaleDateString('tr-TR', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            timeZone: 'Europe/Istanbul'
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Mesaj balonu */}
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: msg.businessID === businessID ? 'row-reverse' : 'row',
+                        alignItems: 'flex-end',
+                        marginBottom: 8,
+                        gap: 8
+                      }}>
+                        {/* Avatar */}
+                        <div style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background: msg.businessID === businessID ? 
+                            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 
+                            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          flexShrink: 0
+                        }}>
+                          {msg.businessID === businessID ? 'İ' : 'M'}
+                        </div>
+                        
+                        {/* Mesaj içeriği */}
+                        <div style={{
+                          maxWidth: '65%',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 4
+                        }}>
+                          <div style={{
+                            background: msg.businessID === businessID ? 
+                              'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 
+                              '#2a2f54',
+                            color: 'white',
+                            padding: '12px 16px',
+                            borderRadius: msg.businessID === businessID ? 
+                              '20px 20px 6px 20px' : 
+                              '20px 20px 20px 6px',
+                            fontSize: 14,
+                            lineHeight: 1.4,
+                            wordBreak: 'break-word',
+                            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                            position: 'relative'
+                          }}>
+                            {msg.content}
+                          </div>
+                          
+                          {/* Saat bilgisi */}
+                          <div style={{ 
+                            fontSize: 11, 
+                            color: '#888', 
+                            textAlign: msg.businessID === businessID ? 'right' : 'left',
+                            paddingLeft: msg.businessID === businessID ? 0 : 8,
+                            paddingRight: msg.businessID === businessID ? 8 : 0
+                          }}>
+                            {formatTurkishTime(msg.date)}
+                          </div>
                         </div>
                       </div>
-                    );
-                  })}
+                    </React.Fragment>
+                  );
+                })}
             </div>
-            {/* Mesaj yazma alanı - ortalanmış ve modern */}
-            <div style={{ borderTop: '1px solid #2d3257', background: '#23284a', padding: 24, display: 'flex', justifyContent: 'center' }}>
-              <form onSubmit={handleSend} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, width: '100%', maxWidth: 500 }}>
-                <textarea
-                  value={messageInput}
-                  onChange={e => setMessageInput(e.target.value)}
-                  placeholder={translations.messages.messagePlaceholder}
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    borderRadius: 10,
-                    border: '1px solid #bbb',
-                    padding: 12,
-                    fontSize: 15,
-                    resize: 'vertical',
-                    background: '#fff',
-                    color: '#23284a',
-                    minHeight: 60,
-                    maxHeight: 120,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-                  }}
-                  disabled={sending}
-                  required
-                />
+            {/* Mesaj yazma alanı - daha iyi hizalanmış */}
+            <div style={{ 
+              borderTop: '1px solid #2d3257', 
+              background: '#1e2142', 
+              padding: '10px 16px',
+              boxShadow: '0 -2px 8px rgba(0,0,0,0.08)',
+              display: 'flex',
+              justifyContent: 'center'
+            }}>
+              <form onSubmit={handleSend} style={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                gap: 8, 
+                width: '100%',
+                maxWidth: 600
+              }}>
+                <div style={{ 
+                  flex: 1,
+                  position: 'relative'
+                }}>
+                  <input
+                    type="text"
+                    value={messageInput}
+                    onChange={e => setMessageInput(e.target.value)}
+                    placeholder={translations.messages.messagePlaceholder}
+                    style={{
+                      width: '100%',
+                      borderRadius: 20,
+                      border: '1px solid #3a4063',
+                      padding: '10px 16px',
+                      fontSize: 14,
+                      background: '#ffffff',
+                      color: '#2d3257',
+                      height: 40,
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSend(e);
+                      }
+                    }}
+                    disabled={sending}
+                    required
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={sending || !messageInput.trim()}
                   style={{
-                    marginTop: 0,
-                    padding: '8px 28px',
-                    borderRadius: 18,
-                    background: 'linear-gradient(90deg, #4776E6 0%, #8E54E9 100%)',
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    background: messageInput.trim() ? 
+                      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 
+                      '#5a6085',
                     color: 'white',
                     border: 'none',
-                    fontWeight: 600,
-                    fontSize: 15,
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(71, 118, 230, 0.15)',
-                    alignSelf: 'center',
-                    minWidth: 90
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: messageInput.trim() ? 'pointer' : 'not-allowed',
+                    boxShadow: messageInput.trim() ? 
+                      '0 2px 8px rgba(102, 126, 234, 0.25)' : 
+                      'none',
+                    fontSize: 14,
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0
                   }}
                 >
-                  {translations.messages.send}
+                  {sending ? '⏳' : '➤'}
                 </button>
               </form>
             </div>
