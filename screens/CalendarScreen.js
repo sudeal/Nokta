@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,11 +39,64 @@ export default function CalendarScreen({ navigation }) {
   const fetchAppointments = async () => {
     setLoading(true);
     try {
+      console.log('Starting fetchAppointments...');
+      
+      // API'den veri çekmeyi dene
       const response = await fetch('https://nokta-appservice.azurewebsites.net/api/Appointments');
-      const userAppointments = await response.json();
+      
+      console.log('API Response status:', response.status);
+      
+      if (!response.ok) {
+        console.error('API request failed with status:', response.status);
+        setAppointments({});
+        setAllAppointments([]);
+        return;
+      }
+      
+      const allAppointments = await response.json();
+      console.log('Raw API response:', typeof allAppointments, allAppointments);
+      
+      // Response'un array olup olmadığını kontrol et
+      if (!allAppointments || !Array.isArray(allAppointments)) {
+        console.error('Response is not a valid array:', allAppointments);
+        setAppointments({});
+        setAllAppointments([]);
+        return;
+      }
+      
+      console.log('Total appointments fetched:', allAppointments.length);
+      
+      // UserID 5 ile filtreleme - güvenli şekilde
+      let userAppointments = [];
+      try {
+        userAppointments = allAppointments.filter(apt => apt && apt.userID === 5) || [];
+        console.log('Filtered appointments for user 5:', userAppointments.length);
+      } catch (filterError) {
+        console.error('Error filtering appointments:', filterError);
+        userAppointments = [];
+      }
 
-      // İşletme ID'lerini toplayalım
-      const businessIDs = userAppointments.map(apt => apt.businessID).filter(id => id);
+      // Eğer randevu yoksa boş verilerle devam et
+      if (userAppointments.length === 0) {
+        console.log('No appointments found for user');
+        setAppointments({});
+        setAllAppointments([]);
+        return;
+      }
+
+      // İşletme ID'lerini güvenli şekilde topla
+      let businessIDs = [];
+      try {
+        businessIDs = userAppointments
+          .filter(apt => apt && apt.businessID) // null/undefined kontrolü
+          .map(apt => apt.businessID)
+          .filter(id => id); // falsy değerleri filtrele
+        console.log('Business IDs found:', businessIDs);
+      } catch (mapError) {
+        console.error('Error mapping business IDs:', mapError);
+        businessIDs = [];
+      }
+      
       const uniqueBusinessIDs = [...new Set(businessIDs)];
 
       // İşletme detaylarını çekelim
@@ -57,29 +111,42 @@ export default function CalendarScreen({ navigation }) {
       // İşletme detaylarını saklayalım
       setBusinessDetails(businessDetailsMap);
 
-      // Randevuları tarihe göre grupla
-      const groupedAppointments = userAppointments.reduce((acc, apt) => {
-        const date = apt.appointmentDateTime.split('T')[0];
-        if (!acc[date]) {
-          acc[date] = [];
-        }
-        
-        // İşletme adını işletme detaylarından alalım
-        const business = businessDetailsMap[apt.businessID];
-        const businessName = business ? business.name : `Business #${apt.businessID}`;
-        
-        acc[date].push({
-          id: apt.appointmentID.toString(),
-          businessID: apt.businessID,
-          businessName: businessName,
-          time: apt.appointmentDateTime.split('T')[1].substring(0, 5),
-          status: apt.status || 'Pending',
-          category: business?.category || 'Unknown',
-          address: business?.address || 'Address not available',
-          note: apt.note
-        });
-        return acc;
-      }, {});
+      // Randevuları tarihe göre grupla - güvenli şekilde
+      let groupedAppointments = {};
+      try {
+        groupedAppointments = userAppointments.reduce((acc, apt) => {
+          // Appointment'ın gerekli alanları olduğundan emin ol
+          if (!apt || !apt.appointmentDateTime || !apt.appointmentID) {
+            console.warn('Invalid appointment data:', apt);
+            return acc;
+          }
+          
+          const date = apt.appointmentDateTime.split('T')[0];
+          if (!acc[date]) {
+            acc[date] = [];
+          }
+          
+          // İşletme adını işletme detaylarından alalım
+          const business = businessDetailsMap[apt.businessID];
+          const businessName = business ? business.name : `Business #${apt.businessID}`;
+          
+          acc[date].push({
+            id: apt.appointmentID.toString(),
+            businessID: apt.businessID,
+            businessName: businessName,
+            time: apt.appointmentDateTime.split('T')[1].substring(0, 5),
+            status: apt.status || 'Pending',
+            category: business?.category || 'Unknown',
+            address: business?.address || 'Address not available',
+            note: apt.note || ''
+          });
+          return acc;
+        }, {});
+        console.log('Grouped appointments:', Object.keys(groupedAppointments).length, 'dates');
+      } catch (reduceError) {
+        console.error('Error grouping appointments:', reduceError);
+        groupedAppointments = {};
+      }
 
       setAppointments(groupedAppointments);
       setAllAppointments(userAppointments);
@@ -97,6 +164,76 @@ export default function CalendarScreen({ navigation }) {
 
     return unsubscribe;
   }, [navigation]);
+
+  // Randevu iptal etme işlemi
+  const cancelAppointment = async (appointmentId, businessName) => {
+    Alert.alert(
+      "Cancel Appointment",
+      `Are you sure you want to cancel your appointment at ${businessName}?`,
+      [
+        {
+          text: "No",
+          style: "cancel"
+        },
+        {
+          text: "Yes, Cancel",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              
+              // API çağrısı ile randevuyu iptal et
+              console.log('Cancelling appointment with ID:', appointmentId);
+              console.log('API URL:', `https://nokta-appservice.azurewebsites.net/api/Appointments/${appointmentId}`);
+              
+              const response = await fetch(`https://nokta-appservice.azurewebsites.net/api/Appointments/${appointmentId}`, {
+                method: 'DELETE',
+                headers: {
+                  'accept': '*/*'
+                },
+              });
+
+              console.log('Response status:', response.status);
+              console.log('Response ok:', response.ok);
+
+              if (response.ok) {
+                Alert.alert(
+                  "Success",
+                  "Your appointment has been cancelled successfully.",
+                  [{ 
+                    text: "OK",
+                    onPress: () => {
+                      // Randevuları yeniden yükle
+                      fetchAppointments();
+                    }
+                  }]
+                );
+              } else {
+                const errorText = await response.text();
+                console.error('Cancel appointment error - Status:', response.status);
+                console.error('Cancel appointment error - Response:', errorText);
+                
+                Alert.alert(
+                  "Error",
+                  `Failed to cancel appointment. Status: ${response.status}\nError: ${errorText}`,
+                  [{ text: "OK" }]
+                );
+              }
+            } catch (error) {
+              console.error('Error cancelling appointment:', error);
+              Alert.alert(
+                "Error",
+                "An error occurred while cancelling the appointment.",
+                [{ text: "OK" }]
+              );
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   // Tarih seçme işlemi
   const handleDayPress = (day) => {
@@ -192,6 +329,17 @@ export default function CalendarScreen({ navigation }) {
                 </View>
               )}
             </View>
+
+            {/* İptal butonu - sadece pending veya confirmed randevular için */}
+            {(appointment.status?.toLowerCase() === 'pending' || appointment.status?.toLowerCase() === 'confirmed') && (
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => cancelAppointment(appointment.id, appointment.businessName)}
+              >
+                <Ionicons name="close-circle-outline" size={20} color="#FF6B6B" />
+                <Text style={styles.cancelButtonText}>Cancel Appointment</Text>
+              </TouchableOpacity>
+            )}
           </LinearGradient>
         ))}
       </ScrollView>
@@ -273,6 +421,17 @@ export default function CalendarScreen({ navigation }) {
                     </View>
                   )}
                 </View>
+
+                {/* İptal butonu - sadece pending veya confirmed randevular için */}
+                {(appointment.status?.toLowerCase() === 'pending' || appointment.status?.toLowerCase() === 'confirmed') && (
+                  <TouchableOpacity 
+                    style={styles.cancelButton}
+                    onPress={() => cancelAppointment(appointment.id, appointment.businessName)}
+                  >
+                    <Ionicons name="close-circle-outline" size={20} color="#FF6B6B" />
+                    <Text style={styles.cancelButtonText}>Cancel Appointment</Text>
+                  </TouchableOpacity>
+                )}
               </LinearGradient>
             ))}
           </View>
@@ -431,5 +590,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 8,
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+  },
+  cancelButtonText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
 });
