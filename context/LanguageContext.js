@@ -356,7 +356,7 @@ const translations = {
     newBookingDoctor: 'Doktor',
     newBookingDentist: 'Diş Hekimi',
     newBookingVet: 'Veteriner',
-    newBookingFoodBeverages: 'Yiyecek ve İçecek',
+          newBookingFoodBeverages: 'Yiyecek ve İçecek',
     newBookingRestaurants: 'Restoranlar',
     newBookingDesserts: 'Tatlılar',
     newBookingFineDining: 'Fine Dining',
@@ -434,11 +434,12 @@ const categoryMapping = {
     "Nail Studios": "Nail Studios",
     "Tattoo & Piercing": "Tattoo & Piercing",
   },
-  tr: {
-    // Ana kategoriler
-    "Sağlık Hizmetleri": "Health Services",
-    "Yemek ve İçecek": "Food & Beverage",
-    "Kişisel Bakım": "Personal Care",
+      tr: {
+      // Ana kategoriler
+      "Sağlık Hizmetleri": "Health Services",
+      "Yemek ve İçecek": "Food & Beverage",
+      "Yiyecek ve İçecek": "Food & Beverage", // Alternative spelling
+      "Kişisel Bakım": "Personal Care",
     
     // Alt kategoriler - Sağlık Hizmetleri
     "Doktor": "Doctor",
