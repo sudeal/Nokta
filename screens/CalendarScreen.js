@@ -15,13 +15,40 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function CalendarScreen({ navigation }) {
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
   const today = new Date().toISOString().split('T')[0]; // Bugünün tarihi
   const [selectedDate, setSelectedDate] = useState(today); // Başlangıçta bugünü seçili yap
   const [appointments, setAppointments] = useState({});
   const [businessDetails, setBusinessDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [allAppointments, setAllAppointments] = useState([]); // Tüm randevuları saklamak için
+
+  // Takvim ayarları
+  const calendarConfig = {
+    tr: {
+      monthNames: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
+      monthNamesShort: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
+      dayNames: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'],
+      dayNamesShort: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
+    },
+    en: {
+      monthNames: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+      dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    }
+  };
+
+  // Türkçe gün isimleri
+  const turkishDayNames = {
+    '1': 'Pzt',
+    '2': 'Sal',
+    '3': 'Çar',
+    '4': 'Per',
+    '5': 'Cum',
+    '6': 'Cmt',
+    '7': 'Paz'
+  };
 
   // İşletme detaylarını çeken fonksiyon
   const fetchBusinessDetails = async (businessID) => {
@@ -373,8 +400,19 @@ export default function CalendarScreen({ navigation }) {
 
     // Tarih formatını düzenleyen fonksiyon
     const formatDate = (dateString) => {
-      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-      return new Date(dateString).toLocaleDateString('en-US', options);
+      const date = new Date(dateString);
+      if (currentLanguage === 'tr') {
+        const weekdays = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+        const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+        const weekday = weekdays[date.getDay()];
+        const month = months[date.getMonth()];
+        const day = date.getDate();
+        const year = date.getFullYear();
+        return `${weekday}, ${month} ${day}, ${year}`;
+      } else {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        return date.toLocaleDateString('en-US', options);
+      }
     };
 
     return (
@@ -430,13 +468,13 @@ export default function CalendarScreen({ navigation }) {
                     style={styles.cancelButton}
                     onPress={() => cancelAppointment(appointment.id, appointment.businessName)}
                   >
-                                      <Ionicons name="close-circle-outline" size={20} color="#FF6B6B" />
-                  <Text style={styles.cancelButtonText}>{t('cancelAppointment')}</Text>
-                </TouchableOpacity>
-              )}
-            </LinearGradient>
-          ))}
-        </View>
+                    <Ionicons name="close-circle-outline" size={20} color="#FF6B6B" />
+                    <Text style={styles.cancelButtonText}>{t('cancelAppointment')}</Text>
+                  </TouchableOpacity>
+                )}
+              </LinearGradient>
+            ))}
+          </View>
         ))}
       </ScrollView>
     );
@@ -468,6 +506,10 @@ export default function CalendarScreen({ navigation }) {
             onDayPress={handleDayPress}
             markedDates={getMarkedDates()}
             current={today}
+            firstDay={1}
+            enableSwipeMonths={true}
+            hideExtraDays={false}
+            monthFormat={currentLanguage === 'tr' ? 'MMMM yyyy' : 'MMMM yyyy'}
             theme={{
               calendarBackground: '#0F1C2E',
               monthTextColor: '#FFFFFF',
@@ -484,6 +526,32 @@ export default function CalendarScreen({ navigation }) {
               textMonthFontWeight: 'bold',
               textDayHeaderFontWeight: '600',
             }}
+            renderHeader={(date) => {
+              const month = date.toString('MMMM');
+              const year = date.toString('yyyy');
+              if (currentLanguage === 'tr') {
+                const monthIndex = new Date(date).getMonth();
+                return (
+                  <View style={styles.calendarHeader}>
+                    <Text style={styles.calendarHeaderText}>
+                      {`${calendarConfig.tr.monthNames[monthIndex]} ${year}`}
+                    </Text>
+                  </View>
+                );
+              }
+              return null;
+            }}
+            dayNames={currentLanguage === 'tr' ? ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'] : undefined}
+            customHeaderTitle={currentLanguage === 'tr' ? {
+              '1': 'Pzt',
+              '2': 'Sal',
+              '3': 'Çar',
+              '4': 'Per',
+              '5': 'Cum',
+              '6': 'Cmt',
+              '7': 'Paz'
+            } : undefined}
+            dayNamesShort={currentLanguage === 'tr' ? ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'] : undefined}
           />
         </View>
 
@@ -610,5 +678,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 6,
+  },
+  calendarHeader: {
+    backgroundColor: '#0F1C2E',
+    padding: 10,
+  },
+  calendarHeaderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
