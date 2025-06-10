@@ -6,39 +6,44 @@ import Appointments from "../Appointments";
 import Profile from "../Profile";
 import Menu from "../Menu";
 import Directions from "../Directions";
+import LanguageButton from "../../components/LanguageButton";
 
 const Template6 = () => {
   return (
     <div>
       {/* Navbar */}
       <nav className="navbar-modern">
-        <ul className="navbar-modern-list">
-          <li className="navbar-modern-item">
-            <Link to="/template6/home" className="navbar-modern-link">
-              Home
-            </Link>
-          </li>
-          <li className="navbar-modern-item">
-            <Link to="/template6/appointment" className="navbar-modern-link">
-              Appointment
-            </Link>
-          </li>
-          <li className="navbar-modern-item">
-            <Link to="/template6/menu" className="navbar-modern-link">
-              Menu
-            </Link>
-          </li>
-          <li className="navbar-modern-item">
-            <Link to="/template6/directions" className="navbar-modern-link">
-              Directions
-            </Link>
-          </li>
-          <li className="navbar-modern-item">
-            <Link to="/template6/profile" className="navbar-modern-link">
-              Profile
-            </Link>
-          </li>
-        </ul>
+        <div></div>
+        <div className="navbar-center">
+          <ul className="navbar-modern-list">
+            <li className="navbar-modern-item">
+              <Link to="/template6/home" className="navbar-modern-link">
+                Home
+              </Link>
+            </li>
+            <li className="navbar-modern-item">
+              <Link to="/template6/appointment" className="navbar-modern-link">
+                Appointment
+              </Link>
+            </li>
+            <li className="navbar-modern-item">
+              <Link to="/template6/menu" className="navbar-modern-link">
+                Menu
+              </Link>
+            </li>
+            <li className="navbar-modern-item">
+              <Link to="/template6/directions" className="navbar-modern-link">
+                Directions
+              </Link>
+            </li>
+            <li className="navbar-modern-item">
+              <Link to="/template6/profile" className="navbar-modern-link">
+                Profile
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <LanguageButton />
       </nav>
 
       {/* Routes for Template6 */}

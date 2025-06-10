@@ -5,34 +5,39 @@ import Home from "../Home";
 import Appointments from "../Appointments";
 import Profile from "../Profile";
 import Directions from "../Menu";
+import LanguageButton from "../../components/LanguageButton";
 
 const Template3 = () => {
   return (
     <div>
       {/* Navbar */}
       <nav className="navbar-modern">
-        <ul className="navbar-modern-list">
-          <li className="navbar-modern-item">
-            <Link to="/template3/home" className="navbar-modern-link">
-              Home
-            </Link>
-          </li>
-          <li className="navbar-modern-item">
-            <Link to="/template3/appointment" className="navbar-modern-link">
-              Appointment
-            </Link>
-          </li>
-          <li className="navbar-modern-item">
-            <Link to="/template3/menu" className="navbar-modern-link">
-              Menu
-            </Link>
-          </li>
-          <li className="navbar-modern-item">
-            <Link to="/template3/profile" className="navbar-modern-link">
-              Profile
-            </Link>
-          </li>
-        </ul>
+        <div></div>
+        <div className="navbar-center">
+          <ul className="navbar-modern-list">
+            <li className="navbar-modern-item">
+              <Link to="/template3/home" className="navbar-modern-link">
+                Home
+              </Link>
+            </li>
+            <li className="navbar-modern-item">
+              <Link to="/template3/appointment" className="navbar-modern-link">
+                Appointment
+              </Link>
+            </li>
+            <li className="navbar-modern-item">
+              <Link to="/template3/menu" className="navbar-modern-link">
+                Menu
+              </Link>
+            </li>
+            <li className="navbar-modern-item">
+              <Link to="/template3/profile" className="navbar-modern-link">
+                Profile
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <LanguageButton />
       </nav>
 
       {/* Routes for Template3 */}

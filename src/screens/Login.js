@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { translations } = useLanguage();
 
   const handleLoginSuccess = async (email) => {
     try {
@@ -41,7 +43,7 @@ const Login = () => {
       navigate(`/template${business.webSiteTemplateID}`);
     } catch (error) {
       console.error("Error fetching business details:", error);
-      alert("Failed to fetch business details. Please try again.");
+      alert(translations.login.fetchBusinessFailed);
     }
   };
 
@@ -66,12 +68,12 @@ const Login = () => {
         throw new Error(errorMessage);
       }
 
-      alert("Login successful!");
+      alert(translations.login.loginSuccess);
       // Fetch user details and navigate to the correct template
       await handleLoginSuccess(email);
     } catch (err) {
       console.error("Login error:", err);
-      alert("Login failed. Please check your credentials.");
+      alert(translations.login.loginFailed);
     } finally {
       setLoading(false);
     }
@@ -80,11 +82,11 @@ const Login = () => {
   return (
     <div className="auth-container">
       <form onSubmit={handleSubmit}>
-        <h2 className="auth-title">Welcome Back</h2>
-        <p className="auth-subtitle">Login to access your website</p>
+        <h2 className="auth-title">{translations.login.title}</h2>
+        <p className="auth-subtitle">{translations.login.subtitle}</p>
         
         <div className="form-group">
-          <label htmlFor="email">Email Address</label>
+          <label htmlFor="email">{translations.login.email}</label>
           <div className="input-container">
             <span className="input-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -95,7 +97,7 @@ const Login = () => {
             <input
               id="email"
               type="email"
-              placeholder="Enter your email"
+              placeholder={translations.login.email}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -105,8 +107,8 @@ const Login = () => {
         
         <div className="form-group">
           <div className="label-container">
-            <label htmlFor="password">Password</label>
-            <a href="#" className="forgot-password">Forgot Password?</a>
+            <label htmlFor="password">{translations.login.password}</label>
+            <a href="#" className="forgot-password">{translations.login.forgotPassword}</a>
           </div>
           <div className="input-container">
             <span className="input-icon">
@@ -118,7 +120,7 @@ const Login = () => {
             <input
               id="password"
               type="password"
-              placeholder="Enter your password"
+              placeholder={translations.login.password}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -134,15 +136,16 @@ const Login = () => {
               </svg>
             </span>
           ) : (
-            "Login"
+            translations.login.loginButton
           )}
         </button>
         
-        <Link to="/signup">
-          <button type="button" className="auth-button register-button" style={{ marginTop: '15px', backgroundColor: '#4CAF50' }}>
-            Register
-          </button>
-        </Link>
+        <div style={{ marginTop: '20px', textAlign: 'center', color: '#a0a0c0' }}>
+          {translations.login.noAccount}{' '}
+          <Link to="/signup" style={{ color: '#4776E6', textDecoration: 'none' }}>
+            {translations.login.signUp}
+          </Link>
+        </div>
       </form>
     </div>
   );

@@ -7,46 +7,51 @@ import Profile from "../Profile";
 import Messages from "../Messages";
 import Statistics from "../Statistics";
 import Directions from "../Directions";
+import LanguageButton from "../../components/LanguageButton";
 
 const Template15 = () => {
   return (
     <div>
       {/* Navbar */}
       <nav className="navbar-modern">
-        <ul className="navbar-modern-list">
-          <li className="navbar-modern-item">
-            <Link to="/template15/home" className="navbar-modern-link">
-              Home
-            </Link>
-          </li>
-          <li className="navbar-modern-item">
-            <Link to="/template15/appointment" className="navbar-modern-link">
-              Appointment
-            </Link>
-          </li>
+        <div></div>
+        <div className="navbar-center">
+          <ul className="navbar-modern-list">
+            <li className="navbar-modern-item">
+              <Link to="/template15/home" className="navbar-modern-link">
+                Home
+              </Link>
+            </li>
+            <li className="navbar-modern-item">
+              <Link to="/template15/appointment" className="navbar-modern-link">
+                Appointment
+              </Link>
+            </li>
 
-          <li className="navbar-modern-item">
-            <Link to="/template15/messages" className="navbar-modern-link">
-              Messages
-            </Link>
-          </li>
-          <li className="navbar-modern-item">
-            <Link to="/template15/statistics" className="navbar-modern-link">
-              Statistics
-            </Link>
-          </li>
-          <li className="navbar-modern-item">
-            <Link to="/template15/directions" className="navbar-modern-link">
-              Directions
-            </Link>
-          </li>
+            <li className="navbar-modern-item">
+              <Link to="/template15/messages" className="navbar-modern-link">
+                Messages
+              </Link>
+            </li>
+            <li className="navbar-modern-item">
+              <Link to="/template15/statistics" className="navbar-modern-link">
+                Statistics
+              </Link>
+            </li>
+            <li className="navbar-modern-item">
+              <Link to="/template15/directions" className="navbar-modern-link">
+                Directions
+              </Link>
+            </li>
 
-          <li className="navbar-modern-item">
-            <Link to="/template15/profile" className="navbar-modern-link">
-              Profile
-            </Link>
-          </li>
-        </ul>
+            <li className="navbar-modern-item">
+              <Link to="/template15/profile" className="navbar-modern-link">
+                Profile
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <LanguageButton />
       </nav>
 
       {/* Routes for Template15 */}

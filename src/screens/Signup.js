@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const SignupStep1 = ({ onNext }) => {
+  const { translations } = useLanguage();
   const [formData, setFormData] = useState({
     email: "",
     //contactNumber: "+90",
@@ -30,9 +32,7 @@ const SignupStep1 = ({ onNext }) => {
     } else {
       if (name === "passwordHash") {
         if (!validatePassword(value)) {
-          setPasswordError(
-            "Password must be at least 6 characters long, include 1 uppercase, 1 lowercase, 1 digit, and 1 special character."
-          );
+          setPasswordError(translations.signup.step1.passwordError);
         } else {
           setPasswordError("");
         }
@@ -49,11 +49,11 @@ const SignupStep1 = ({ onNext }) => {
     e.preventDefault();
 
     if (formData.passwordHash !== formData.confirmPassword) {
-      return alert("Passwords do not match!");
+      return alert(translations.signup.step1.passwordMismatch);
     }
 
     if (passwordError) {
-      return alert("Please fix the password error.");
+      return alert(translations.signup.step1.fixPasswordError);
     }
 
     onNext(formData);
@@ -62,18 +62,18 @@ const SignupStep1 = ({ onNext }) => {
   return (
     <form onSubmit={handleNext}>
       <div className="form-group">
-        <label>Email</label>
+        <label>{translations.signup.step1.email}</label>
         <input
           type="email"
           name="email"
-          placeholder="Enter your email"
+          placeholder={translations.signup.step1.emailPlaceholder}
           value={formData.email}
           onChange={handleChange}
           required
         />
       </div>
       <div className="form-group phone-group">
-        <label>Contact Number</label>
+        <label>{translations.signup.step1.contactNumber}</label>
         <div className="phone-inputs">
           <select
             name="countryCode"
@@ -87,7 +87,7 @@ const SignupStep1 = ({ onNext }) => {
           <input
             type="text"
             name="contactNumber"
-            placeholder="Enter your contact number"
+            placeholder={translations.signup.step1.contactPlaceholder}
             value={formData.contactNumber}
             onChange={handleChange}
             required
@@ -96,11 +96,11 @@ const SignupStep1 = ({ onNext }) => {
         </div>
       </div>
       <div className="form-group">
-        <label>Password</label>
+        <label>{translations.signup.step1.password}</label>
         <input
           type="password"
           name="passwordHash"
-          placeholder="Enter your password"
+          placeholder={translations.signup.step1.passwordPlaceholder}
           value={formData.passwordHash}
           onChange={handleChange}
           required
@@ -108,22 +108,23 @@ const SignupStep1 = ({ onNext }) => {
         {passwordError && <p style={{ color: "red" }}>{passwordError}</p>}
       </div>
       <div className="form-group">
-        <label>Confirm Password</label>
+        <label>{translations.signup.step1.confirmPassword}</label>
         <input
           type="password"
           name="confirmPassword"
-          placeholder="Confirm your password"
+          placeholder={translations.signup.step1.confirmPasswordPlaceholder}
           value={formData.confirmPassword}
           onChange={handleChange}
           required
         />
       </div>
-      <button type="submit">Next</button>
+      <button type="submit">{translations.signup.step1.next}</button>
     </form>
   );
 };
 
 const SignupStep2 = ({ onNext, formData, handleChange }) => {
+  const { translations } = useLanguage();
   const categories = [
     "Health Care",
     "Personal Care",
@@ -145,11 +146,11 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
     <form onSubmit={handleNext}>
       <div>
         <label>
-          Name:
+          {translations.signup.step2.name}
           <input
             type="text"
             name="name"
-            placeholder="Enter your business's name"
+            placeholder={translations.signup.step2.namePlaceholder}
             value={formData.name}
             onChange={handleChange}
             required
@@ -158,11 +159,11 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
       </div>
       <div>
         <label>
-          Owner Name:
+          {translations.signup.step2.ownerName}
           <input
             type="text"
             name="ownerName"
-            placeholder="Enter owner's name"
+            placeholder={translations.signup.step2.ownerPlaceholder}
             value={formData.ownerName}
             onChange={handleChange}
             required
@@ -171,7 +172,7 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
       </div>
       <div>
         <label>
-          Category:
+          {translations.signup.step2.category}
           <select
             name="category"
             value={formData.category}
@@ -179,7 +180,7 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
             required
           >
             <option value="" disabled>
-              Select a category
+              {translations.signup.step2.selectCategory}
             </option>
             {categories.map((category) => (
               <option key={category} value={category}>
@@ -192,7 +193,7 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
       {formData.category && (
         <div>
           <label>
-            Subcategory:
+            {translations.signup.step2.subcategory}
             <select
               name="subcategory"
               value={formData.subcategory || ""}
@@ -200,7 +201,7 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
               required
             >
               <option value="" disabled>
-                Select a subcategory
+                {translations.signup.step2.selectSubcategory}
               </option>
               {subcategories[formData.category].map((subcat) => (
                 <option key={subcat} value={subcat}>
@@ -213,11 +214,11 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
       )}
       <div>
         <label>
-          Address:
+          {translations.signup.step2.address}
           <input
             type="text"
             name="address"
-            placeholder="Enter your address"
+            placeholder={translations.signup.step2.addressPlaceholder}
             value={formData.address}
             onChange={handleChange}
             required
@@ -226,23 +227,24 @@ const SignupStep2 = ({ onNext, formData, handleChange }) => {
       </div>
       <div>
         <label>
-          Description:
+          {translations.signup.step2.description}
           <textarea
             name="description"
-            placeholder="Enter a description"
+            placeholder={translations.signup.step2.descriptionPlaceholder}
             value={formData.description}
             onChange={handleChange}
             required
           />
         </label>
       </div>
-      <button type="submit">Next</button>
+      <button type="submit">{translations.signup.step2.next}</button>
     </form>
   );
 };
 
 const SignupStep3 = ({ formData, onSuccess }) => {
   const navigate = useNavigate();
+  const { translations } = useLanguage();
   const [additionalData, setAdditionalData] = useState({
     hasMessaging: true,
     hasStatistics: true,
@@ -304,20 +306,18 @@ const SignupStep3 = ({ formData, onSuccess }) => {
       if (!response.ok) {
         const error = await response.text();
         console.error("Error Response:", error);
-        alert(`Registration failed: ${error || "Unknown error occurred"}`);
+        alert(`${translations.signup.step3.registrationFailed} ${error || translations.signup.step3.unknownError}`);
         return;
       }
 
       const result = await response.json();
-      alert("Registration successful!");
+      alert(translations.signup.step3.registrationSuccess);
       console.log("Response:", result);
 
       navigate("/");
     } catch (err) {
       console.error("Fetch Error:", err);
-      alert(
-        "An error occurred while sending the request. Check console for details."
-      );
+      alert(translations.signup.step3.errorOccurred);
     }
   };
 
@@ -325,7 +325,7 @@ const SignupStep3 = ({ formData, onSuccess }) => {
     <form onSubmit={handleSubmit}>
       <div>
         <label>
-          Opening Hour:
+          {translations.signup.step3.openingHour}
           <input
             type="time"
             name="openingHour"
@@ -335,7 +335,7 @@ const SignupStep3 = ({ formData, onSuccess }) => {
           />
         </label>
         <label>
-          Closing Hour:
+          {translations.signup.step3.closingHour}
           <input
             type="time"
             name="closingHour"
@@ -353,7 +353,7 @@ const SignupStep3 = ({ formData, onSuccess }) => {
             checked={additionalData.hasMessaging}
             onChange={handleChange}
           />
-          Messaging Service
+          {translations.signup.step3.messagingService}
         </label>
         <label>
           <input
@@ -362,7 +362,7 @@ const SignupStep3 = ({ formData, onSuccess }) => {
             checked={additionalData.hasStatistics}
             onChange={handleChange}
           />
-          Statistics
+          {translations.signup.step3.statistics}
         </label>
         <label>
           <input
@@ -371,7 +371,7 @@ const SignupStep3 = ({ formData, onSuccess }) => {
             checked={additionalData.hasMenuPrices}
             onChange={handleChange}
           />
-          Menu and Prices
+          {translations.signup.step3.menuPrices}
         </label>
         <label>
           <input
@@ -380,15 +380,16 @@ const SignupStep3 = ({ formData, onSuccess }) => {
             checked={additionalData.hasDirections}
             onChange={handleChange}
           />
-          Directions
+          {translations.signup.step3.directions}
         </label>
       </div>
-      <button type="submit">Submit</button>
+      <button type="submit">{translations.signup.step3.submit}</button>
     </form>
   );
 };
 
 const Signup = () => {
+  const { translations } = useLanguage();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
@@ -431,7 +432,7 @@ const Signup = () => {
       {step === 3 && <SignupStep3 onSuccess={handleNext} formData={formData} />}
 
       <div className="button-container">
-        {step > 1 && <button onClick={handlePrevious}>Back</button>}
+        {step > 1 && <button onClick={handlePrevious}>{translations.signup.back}</button>}
       </div>
     </div>
   );

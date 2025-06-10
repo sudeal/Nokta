@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const Messages = () => {
+  const { translations } = useLanguage();
   const [allMessages, setAllMessages] = useState([]); // Tüm mesajlar (business endpointinden)
   const [conversations, setConversations] = useState([]); // Her user için son mesaj
   const [selectedUser, setSelectedUser] = useState(null); // Seçili userID
@@ -53,7 +55,7 @@ const Messages = () => {
         setLoading(false);
       })
       .catch(err => {
-        setError("Mesajlar yüklenemedi.");
+        setError(translations.messages.messagesLoadFailed);
         setLoading(false);
       });
   }, [selectedUser, businessID]);
@@ -75,8 +77,8 @@ const Messages = () => {
       });
       const result = await res.json();
       if (!res.ok) {
-        alert('Mesaj gönderilemedi: ' + (result?.message || res.status));
-        throw new Error("Mesaj gönderilemedi");
+        alert(translations.messages.messageSendFailed + ' ' + (result?.message || res.status));
+        throw new Error(translations.messages.messageSendFailed);
       }
       setMessageInput("");
       // Mesajı tekrar çek
@@ -84,8 +86,8 @@ const Messages = () => {
         .then(res => res.json())
         .then(data => setMessages(data.messages || []));
     } catch (err) {
-      alert('Mesaj gönderilemedi: ' + err.message);
-      setError("Mesaj gönderilemedi.");
+      alert(translations.messages.messageSendFailed + ' ' + err.message);
+      setError(translations.messages.messageSendFailed);
     } finally {
       setSending(false);
     }
@@ -93,15 +95,15 @@ const Messages = () => {
 
   // 4. Mesaj sil (sadece business'ın kendi mesajları için)
   const handleDelete = async (messageID) => {
-    if (!window.confirm("Mesajı silmek istediğinize emin misiniz?")) return;
+    if (!window.confirm(translations.messages.messageDeleteConfirm)) return;
     try {
       const res = await fetch(`https://nokta-appservice.azurewebsites.net/api/Messages/${messageID}`, {
         method: "DELETE"
       });
-      if (!res.ok) throw new Error("Mesaj silinemedi");
+      if (!res.ok) throw new Error(translations.messages.messageDeleteFailed);
       setMessages(prev => prev.filter(m => m.messageID !== messageID));
     } catch (err) {
-      setError("Mesaj silinemedi.");
+      setError(translations.messages.messageDeleteFailed);
     }
   };
 
@@ -118,9 +120,9 @@ const Messages = () => {
     <div style={{ display: 'flex', height: '80vh', background: '#23284a', borderRadius: 12, overflow: 'hidden' }}>
       {/* Sol: Userlardan gelen son mesajlar */}
       <div style={{ width: 320, background: '#1c2037', borderRight: '1px solid #2d3257', overflowY: 'auto' }}>
-        <div style={{ padding: 24, borderBottom: '1px solid #2d3257', color: 'white', fontWeight: 600, fontSize: 22 }}>Gelen Mesajlar</div>
-        {loading && <div style={{ color: 'white', padding: 24 }}>Yükleniyor...</div>}
-        {conversations.length === 0 && !loading && <div style={{ color: '#aaa', padding: 24 }}>Henüz mesaj yok.</div>}
+        <div style={{ padding: 24, borderBottom: '1px solid #2d3257', color: 'white', fontWeight: 600, fontSize: 22 }}>{translations.messages.title}</div>
+        {loading && <div style={{ color: 'white', padding: 24 }}>{translations.messages.loading}</div>}
+        {conversations.length === 0 && !loading && <div style={{ color: '#aaa', padding: 24 }}>{translations.messages.noMessages}</div>}
         {conversations.map(conv => (
           <div key={conv.userID} onClick={() => setSelectedUser(conv.userID)}
             style={{
@@ -142,7 +144,7 @@ const Messages = () => {
         {selectedUser ? (
           <>
             <div style={{ padding: 18, borderBottom: '1px solid #2d3257', color: 'white', fontWeight: 600, fontSize: 18 }}>
-              {conversations.find(c => c.userID === selectedUser)?.userName || 'Kullanıcı'} ile Mesajlar
+              {conversations.find(c => c.userID === selectedUser)?.userName || translations.messages.user} {translations.messages.conversationWith}
             </div>
             {/* Mesaj geçmişi - sadece kaydırılabilir, ekstra buton yok */}
             <div ref={messagesEndRef} style={{
@@ -158,8 +160,8 @@ const Messages = () => {
               margin: '0 auto',
               background: 'transparent'
             }}>
-              {loading ? <div style={{ color: 'white' }}>Yükleniyor...</div> :
-                messages.length === 0 ? <div style={{ color: '#aaa' }}>Henüz mesaj yok.</div> :
+              {loading ? <div style={{ color: 'white' }}>{translations.messages.loading}</div> :
+                messages.length === 0 ? <div style={{ color: '#aaa' }}>{translations.messages.noMessages}</div> :
                   messages.map(msg => {
                     const isUser = msg.userID === selectedUser;
                     const isBusiness = msg.businessID === businessID && !isUser;
@@ -197,7 +199,7 @@ const Messages = () => {
                 <textarea
                   value={messageInput}
                   onChange={e => setMessageInput(e.target.value)}
-                  placeholder="Mesaj ekle"
+                  placeholder={translations.messages.messagePlaceholder}
                   rows={3}
                   style={{
                     width: '100%',
@@ -233,14 +235,14 @@ const Messages = () => {
                     minWidth: 90
                   }}
                 >
-                  Gönder
+                  {translations.messages.send}
                 </button>
               </form>
             </div>
           </>
         ) : (
           <div style={{ color: '#aaa', padding: 48, textAlign: 'center', fontSize: 18 }}>
-            Bir kullanıcı seçerek mesajları görüntüleyin.
+            {translations.messages.selectUser}
           </div>
         )}
       </div>
