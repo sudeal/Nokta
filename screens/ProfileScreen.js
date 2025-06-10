@@ -16,8 +16,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { getUserProfile } from '../services/UserService';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function ProfileScreen({ navigation }) {
+  const { language } = useLanguage();
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ export default function ProfileScreen({ navigation }) {
       console.log('Stored user data:', storedUserData);
       
       if (!storedUserData) {
-        setError('Please login to view your profile');
+        setError(language.profilePleaseLogin);
         setLoading(false);
         setTimeout(() => {
           navigation.replace('Login');
@@ -47,7 +49,7 @@ export default function ProfileScreen({ navigation }) {
       console.log('Parsed user data:', parsedUserData);
       
       if (!parsedUserData.userID) {
-        setError('Invalid user data. Redirecting to login...');
+        setError(language.profileInvalidUserData);
         setLoading(false);
         setTimeout(() => {
           navigation.replace('Login');
@@ -59,7 +61,7 @@ export default function ProfileScreen({ navigation }) {
       await fetchUserProfile(parsedUserData.userID);
     } catch (err) {
       console.error('Error loading user data:', err);
-      setError('Failed to load user data. Redirecting to login...');
+      setError(language.profileFailedToLoadUserData);
       setLoading(false);
       setTimeout(() => {
         navigation.replace('Login');
@@ -77,8 +79,8 @@ export default function ProfileScreen({ navigation }) {
       setError(null);
     } catch (err) {
       console.error('Error fetching profile:', err);
-      setError('Failed to load profile data. Please try again.');
-      Alert.alert('Error', 'Failed to load profile data. Please try again.');
+      setError(language.profileFailedToLoadProfile);
+      Alert.alert(language.profileError, language.profileFailedToLoadProfile);
     } finally {
       setLoading(false);
     }
@@ -87,22 +89,22 @@ export default function ProfileScreen({ navigation }) {
   const helpOptions = [
     {
       icon: "help-circle-outline",
-      title: "Frequently Asked Questions",
+      title: language.profileFAQ,
       onPress: () => navigation.navigate("FAQ"),
     },
     {
       icon: "mail-outline",
-      title: "Contact Us",
+      title: language.profileContactUs,
       onPress: () => Linking.openURL("mailto:support@nokta.com"),
     },
     {
       icon: "call-outline",
-      title: "Customer Service",
+      title: language.profileCustomerService,
       onPress: () => Linking.openURL("tel:+908502123456"),
     },
     {
       icon: "document-text-outline",
-      title: "Terms of Use",
+      title: language.profileTermsOfUse,
       onPress: () => navigation.navigate("Terms"),
     },
   ];
@@ -110,17 +112,17 @@ export default function ProfileScreen({ navigation }) {
   const menuItems = [
     {
       icon: "calendar-outline",
-      title: "My Appointments",
+      title: language.profileMyAppointments,
       onPress: () => navigation.navigate("Calendar"),
     },
     {
       icon: "notifications-outline",
-      title: "Notifications",
+      title: language.profileNotifications,
       onPress: () => navigation.navigate("Notification"),
     },
     {
       icon: "help-circle-outline",
-      title: "Help",
+      title: language.profileHelp,
       onPress: () => setHelpModalVisible(true),
     },
   ];
@@ -135,7 +137,7 @@ export default function ProfileScreen({ navigation }) {
       navigation.replace("Login");
     } catch (error) {
       console.error("Logout error:", error);
-      Alert.alert("Error", "Could not log out. Please try again.");
+      Alert.alert(language.profileError, language.profileCouldNotLogout);
     }
   };
 
@@ -155,7 +157,7 @@ export default function ProfileScreen({ navigation }) {
             <View style={styles.modalHeader}>
               <View style={styles.titleContainer}>
                 <Ionicons name="help-circle" size={30} color="#ffffff" />
-                <Text style={styles.modalTitle}>How to Use Nokta App?</Text>
+                <Text style={styles.modalTitle}>{language.profileHowToUseNokta}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => setHelpModalVisible(false)}
@@ -171,91 +173,67 @@ export default function ProfileScreen({ navigation }) {
             >
               <View style={styles.helpSection}>
                 <Text style={styles.welcomeText}>
-                  Welcome to Nokta app! We would like to show you how to make
-                  appointments and use our application.
+                  {language.profileWelcomeText}
                 </Text>
               </View>
 
               <View style={styles.helpSection}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="search" size={24} color="#ffffff" />
-                  <Text style={styles.sectionTitle}>Browse</Text>
+                  <Text style={styles.sectionTitle}>{language.profileBrowse}</Text>
                 </View>
                 <Text style={styles.helpText}>
-                  You can see all businesses in the Browse tab on the home page.
-                  Businesses are categorized (hairdresser, beauty center, spa,
-                  etc.). You can list the businesses in that area by selecting the
-                  category you want.
+                  {language.profileBrowseHelp}
                 </Text>
               </View>
 
               <View style={styles.helpSection}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="calendar" size={24} color="#ffffff" />
-                  <Text style={styles.sectionTitle}>Making an Appointment</Text>
+                  <Text style={styles.sectionTitle}>{language.profileMakingAppointment}</Text>
                 </View>
                 <Text style={styles.helpText}>
-                  In the New Booking tab, you will see businesses categorized by
-                  type. After selecting the business you want:
-                  {"\n"}
-                  • Select service
-                  {"\n"}
-                  • Choose date and time
-                  {"\n"}
-                  • Confirm and payment
-                  {"\n"}
-                  Follow these steps to easily create your appointment.
+                  {language.profileMakingAppointmentHelp}
                 </Text>
               </View>
 
               <View style={styles.helpSection}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="person" size={24} color="#ffffff" />
-                  <Text style={styles.sectionTitle}>My Appointments</Text>
+                  <Text style={styles.sectionTitle}>{language.profileMyAppointments}</Text>
                 </View>
                 <Text style={styles.helpText}>
-                  In the "My Appointments" section of your profile page or in the
-                  Calendar tab, you can view:
-                  {"\n"}
-                  • Your active appointments
-                  {"\n"}
-                  • Your past appointments
-                  {"\n"}
-                  • Your upcoming appointments
+                  {language.profileMyAppointmentsHelp}
                 </Text>
               </View>
 
               <View style={styles.helpSection}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="chatbubbles" size={24} color="#ffffff" />
-                  <Text style={styles.sectionTitle}>Messaging</Text>
+                  <Text style={styles.sectionTitle}>{language.profileMessaging}</Text>
                 </View>
                 <Text style={styles.helpText}>
-                  You can directly message with businesses you have appointments
-                  with in the Messages tab. You can discuss appointment details
-                  and ask your questions.
+                  {language.profileMessagingHelp}
                 </Text>
               </View>
 
               <View style={styles.helpSection}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="calendar-outline" size={24} color="#ffffff" />
-                  <Text style={styles.sectionTitle}>Calendar</Text>
+                  <Text style={styles.sectionTitle}>{language.profileCalendar}</Text>
                 </View>
                 <Text style={styles.helpText}>
-                  In the Calendar tab, you can view all your appointments in
-                  calendar format and better plan your appointments.
+                  {language.profileCalendarHelp}
                 </Text>
               </View>
 
               <View style={styles.helpSection}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="notifications-outline" size={24} color="#ffffff" />
-                  <Text style={styles.sectionTitle}>Notifications</Text>
+                  <Text style={styles.sectionTitle}>{language.profileNotifications}</Text>
                 </View>
                 <Text style={styles.helpText}>
-                  Don't forget to keep your notifications on for appointment
-                  reminders, business messages, and special offers!
+                  {language.profileNotificationsHelp}
                 </Text>
               </View>
             </ScrollView>
@@ -278,7 +256,7 @@ export default function ProfileScreen({ navigation }) {
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => loadUserData()}>
-          <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={styles.retryButtonText}>{language.profileRetry}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -293,7 +271,7 @@ export default function ProfileScreen({ navigation }) {
     >
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerTitle}>{language.profileTitle}</Text>
         </View>
 
         <ScrollView style={styles.content}>
@@ -310,40 +288,40 @@ export default function ProfileScreen({ navigation }) {
               <View style={styles.infoRow}>
                 <Ionicons name="person-outline" size={24} color="#4B63DB" />
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Name</Text>
-                  <Text style={styles.infoValue}>{userData?.name || 'Not set'}</Text>
+                  <Text style={styles.infoLabel}>{language.profileName}</Text>
+                  <Text style={styles.infoValue}>{userData?.name || language.profileNotSet}</Text>
                 </View>
               </View>
 
               <View style={styles.infoRow}>
                 <Ionicons name="mail-outline" size={24} color="#4B63DB" />
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Email</Text>
-                  <Text style={styles.infoValue}>{userData?.email || 'Not set'}</Text>
+                  <Text style={styles.infoLabel}>{language.profileEmail}</Text>
+                  <Text style={styles.infoValue}>{userData?.email || language.profileNotSet}</Text>
                 </View>
               </View>
 
               <View style={styles.infoRow}>
                 <Ionicons name="call-outline" size={24} color="#4B63DB" />
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Phone</Text>
-                  <Text style={styles.infoValue}>{userData?.phoneNumber || 'Not set'}</Text>
+                  <Text style={styles.infoLabel}>{language.profilePhone}</Text>
+                  <Text style={styles.infoValue}>{userData?.phoneNumber || language.profileNotSet}</Text>
                 </View>
               </View>
 
               <View style={styles.infoRow}>
                 <Ionicons name="location-outline" size={24} color="#4B63DB" />
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Location</Text>
-                  <Text style={styles.infoValue}>{userData?.location || 'Not set'}</Text>
+                  <Text style={styles.infoLabel}>{language.profileLocation}</Text>
+                  <Text style={styles.infoValue}>{userData?.location || language.profileNotSet}</Text>
                 </View>
               </View>
 
               <View style={styles.infoRow}>
                 <Ionicons name="calendar-outline" size={24} color="#4B63DB" />
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Age</Text>
-                  <Text style={styles.infoValue}>{userData?.age || 'Not set'}</Text>
+                  <Text style={styles.infoLabel}>{language.profileAge}</Text>
+                  <Text style={styles.infoValue}>{userData?.age || language.profileNotSet}</Text>
                 </View>
               </View>
             </View>
@@ -372,7 +350,7 @@ export default function ProfileScreen({ navigation }) {
         onPress={handleForgotPassword}
       >
         <Ionicons name="key-outline" size={24} color="#7C3AED" />
-        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+        <Text style={styles.forgotPasswordText}>{language.profileForgotPassword}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -380,7 +358,7 @@ export default function ProfileScreen({ navigation }) {
         onPress={handleLogout}
       >
         <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
-        <Text style={styles.logoutText}>Log Out</Text>
+        <Text style={styles.logoutText}>{language.profileLogOut}</Text>
       </TouchableOpacity>
 
       {renderHelpModal()}

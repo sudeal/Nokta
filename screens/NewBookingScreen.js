@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
 export default function NewBookingScreen({ navigation }) {
+  const { language } = useLanguage();
   // Animasyon değerleri
   const healthAnim = new Animated.Value(0);
   const foodAnim = new Animated.Value(0);
@@ -116,31 +118,31 @@ export default function NewBookingScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Service Categories</Text>
+          <Text style={styles.headerTitle}>{language.newBookingServiceCategories}</Text>
           <Text style={styles.headerSubtitle}>
-            Choose your perfect service and book your appointment now!
+            {language.newBookingChooseService}
           </Text>
         </View>
         <View style={styles.cardsContainer}>
           {renderCategoryCard(
-            'Health Services',
+            language.newBookingHealthServices,
             <Ionicons name="medical" size={32} color="#fff" />,
             'rgba(0, 122, 255, 0.9)',
-            ['Doctor', 'Dentist', 'Vet'],
+            [language.newBookingDoctor, language.newBookingDentist, language.newBookingVet],
             healthAnim
           )}
           {renderCategoryCard(
-            'Food & Beverages',
+            language.newBookingFoodBeverages,
             <Ionicons name="restaurant" size={32} color="#fff" />,
             'rgba(255, 149, 0, 0.9)',
-            ['Restaurants', 'Desserts', 'Fine Dining', 'Pub & Bars'],
+            [language.newBookingRestaurants, language.newBookingDesserts, language.newBookingFineDining, language.newBookingPubBars],
             foodAnim
           )}
           {renderCategoryCard(
-            'Personal Care',
+            language.newBookingPersonalCare,
             <Ionicons name="cut" size={32} color="#fff" />,
             'rgba(175, 82, 222, 0.9)',
-            ['Male Coiffure', 'Female Coiffure', 'Nail Studios', 'Tattoo & Piercing'],
+            [language.newBookingMaleCoiffure, language.newBookingFemaleCoiffure, language.newBookingNailStudios, language.newBookingTattooPiercing],
             personalCareAnim
           )}
         </View>

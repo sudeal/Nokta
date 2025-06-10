@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useLanguage } from '../context/LanguageContext';
 
 export default function NotificationScreen() {
+  const { language } = useLanguage();
   const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -36,16 +38,16 @@ export default function NotificationScreen() {
         
         // Add acceptance message if appointment is accepted
         if (apt.status === "Accepted") {
-          messages.push("Your appointment has been confirmed!");
+          messages.push(language.notificationAppointmentConfirmed);
           notificationType = "success";
           icon = "checkmark-circle";
         }
 
         // Add time remaining message
         if (isToday) {
-          messages.push("Your appointment is today!");
+          messages.push(language.notificationAppointmentToday);
         } else {
-          messages.push("1 day until your appointment!");
+          messages.push(language.notificationOneDayUntil);
         }
 
         // If not already set by acceptance, set type based on timing
@@ -116,7 +118,7 @@ export default function NotificationScreen() {
                 {notification.date} - {notification.time}
               </Text>
               <Text style={styles.status}>
-                Status: {notification.status}
+                {language.notificationStatus}: {notification.status}
               </Text>
             </View>
           </LinearGradient>
@@ -124,7 +126,7 @@ export default function NotificationScreen() {
       ) : (
         <View style={styles.noNotifications}>
           <Ionicons name="notifications-off-outline" size={64} color="#9CA3AF" />
-          <Text style={styles.noNotificationsText}>No notifications available</Text>
+          <Text style={styles.noNotificationsText}>{language.notificationNoNotifications}</Text>
         </View>
       )}
     </ScrollView>

@@ -15,6 +15,8 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useLanguage } from '../context/LanguageContext';
+import LanguageSelector from '../components/LanguageSelector';
 
 // Validasyon regex'leri
 const VALIDATION = {
@@ -72,6 +74,7 @@ const ERROR_MESSAGES = {
 };
 
 export default function RegisterScreen({ navigation }) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -386,6 +389,7 @@ export default function RegisterScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.logoContainer}>
+            <LanguageSelector style={styles.languageSelector} />
             <View style={styles.logoPlaceholder}>
               <Ionicons name="person-add-outline" size={80} color="#fff" />
             </View>
@@ -396,13 +400,13 @@ export default function RegisterScreen({ navigation }) {
               <AnimatedLetter letter="t" index={3} />
               <AnimatedLetter letter="a" index={4} />
             </View>
-            <Text style={styles.subtitle}>Hesap Oluştur</Text>
+            <Text style={styles.subtitle}>{t('register')}</Text>
           </View>
 
           <View style={styles.formContainer}>
             {renderInput({
               icon: "person-outline",
-              placeholder: "Ad Soyad",
+              placeholder: t('fullName'),
               value: formData.name,
               name: "name",
               maxLength: 50,
@@ -410,7 +414,7 @@ export default function RegisterScreen({ navigation }) {
 
             {renderInput({
               icon: "mail-outline",
-              placeholder: "E-posta",
+              placeholder: t('email'),
               value: formData.email,
               name: "email",
               keyboardType: "email-address",
@@ -419,7 +423,7 @@ export default function RegisterScreen({ navigation }) {
 
             {renderInput({
               icon: "call-outline",
-              placeholder: "Telefon (05XX XXX XX XX)",
+              placeholder: t('phone') || "Phone (05XX XXX XX XX)",
               value: formData.phone,
               name: "phone",
               keyboardType: "phone-pad",
@@ -428,7 +432,7 @@ export default function RegisterScreen({ navigation }) {
 
             {renderInput({
               icon: "lock-closed-outline",
-              placeholder: "Şifre",
+              placeholder: t('password'),
               value: formData.password,
               name: "password",
               secureTextEntry: !showPassword,
@@ -437,7 +441,7 @@ export default function RegisterScreen({ navigation }) {
 
             {renderInput({
               icon: "calendar-outline",
-              placeholder: "Yaş",
+              placeholder: t('age') || "Age",
               value: formData.age,
               name: "age",
               keyboardType: "numeric",
@@ -446,7 +450,7 @@ export default function RegisterScreen({ navigation }) {
 
             {renderInput({
               icon: "location-outline",
-              placeholder: "Konum",
+              placeholder: t('location') || "Location",
               value: formData.location,
               name: "location",
             })}
@@ -462,7 +466,7 @@ export default function RegisterScreen({ navigation }) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.registerButtonText}>Kayıt Ol</Text>
+                <Text style={styles.registerButtonText}>{t('register')}</Text>
               )}
             </TouchableOpacity>
 
@@ -471,8 +475,8 @@ export default function RegisterScreen({ navigation }) {
               onPress={() => navigation.goBack()}
             >
               <Text style={styles.loginLinkText}>
-                Zaten hesabın var mı?{" "}
-                <Text style={styles.loginLinkTextBold}>Giriş Yap</Text>
+                {t('alreadyHaveAccount')}{" "}
+                <Text style={styles.loginLinkTextBold}>{t('login')}</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -497,6 +501,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 40,
     marginBottom: 30,
+  },
+  languageSelector: {
+    marginBottom: 20,
   },
   logoPlaceholder: {
     width: 120,

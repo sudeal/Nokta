@@ -14,6 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import useLocation from "../hooks/useLocation";
 import Navbar from "../components/Navbar";
+import { useLanguage } from "../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
 
@@ -26,6 +27,7 @@ const getShortAddress = (fullAddress) => {
 };
 
 export default function HomeScreen({ navigation }) {
+  const { t } = useLanguage();
   const { location, address, errorMsg, loading } = useLocation();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -58,7 +60,7 @@ export default function HomeScreen({ navigation }) {
     if (errorMsg) {
       return (
         <View style={styles.locationSmallContainer}>
-          <Text style={styles.locationSmallText}>Konum alınamadı</Text>
+          <Text style={styles.locationSmallText}>{t('locationNotAvailable') || 'Location not available'}</Text>
         </View>
       );
     }
@@ -145,17 +147,17 @@ export default function HomeScreen({ navigation }) {
               },
             ]}
           >
-            <Text style={styles.welcomeText}>Welcome 👋</Text>
+            <Text style={styles.welcomeText}>{t('welcome') || 'Welcome'} 👋</Text>
           </Animated.View>
 
           <View style={styles.buttonGrid}>
             <View style={styles.buttonRow}>
-              {renderMenuButton("add-circle", "New Booking", () => navigation.navigate("NewBooking"), 200)}
-              {renderMenuButton("notifications", "Notifications", () => navigation.navigate("Notification"), 300)}
+              {renderMenuButton("add-circle", t('newBooking') || "New Booking", () => navigation.navigate("NewBooking"), 200)}
+              {renderMenuButton("notifications", t('notifications') || "Notifications", () => navigation.navigate("Notification"), 300)}
             </View>
             <View style={styles.buttonRow}>
-              {renderMenuButton("calendar", "Calendar", () => navigation.navigate("Calendar"), 400)}
-              {renderMenuButton("chatbubbles", "Messages", () => navigation.navigate("Messages"), 500)}
+              {renderMenuButton("calendar", t('calendar') || "Calendar", () => navigation.navigate("Calendar"), 400)}
+              {renderMenuButton("chatbubbles", t('messages') || "Messages", () => navigation.navigate("Messages"), 500)}
             </View>
           </View>
         </ScrollView>

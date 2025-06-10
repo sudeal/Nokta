@@ -16,8 +16,11 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLanguage } from '../context/LanguageContext';
+import LanguageSelector from '../components/LanguageSelector';
 
 export default function LoginScreen({ navigation }) {
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,15 +72,15 @@ export default function LoginScreen({ navigation }) {
     let isValid = true;
 
     if (!email) {
-      newErrors.email = "E-posta alanı zorunludur";
+      newErrors.email = t('emailRequired') || "Email is required";
       isValid = false;
     } else if (!/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
-      newErrors.email = "Geçerli bir e-posta adresi giriniz";
+      newErrors.email = t('invalidEmail') || "Please enter a valid email address";
       isValid = false;
     }
 
     if (!password) {
-      newErrors.password = "Şifre alanı zorunludur";
+      newErrors.password = t('passwordRequired') || "Password is required";
       isValid = false;
     }
 
@@ -87,7 +90,7 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('error'), t('fillAllFields') || 'Please fill in all fields');
       return;
     }
 
@@ -157,7 +160,7 @@ export default function LoginScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Error', 'Login failed. Please check your credentials and try again.');
+      Alert.alert(t('error'), t('loginFailed') || 'Login failed. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }
@@ -255,6 +258,7 @@ export default function LoginScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.logoContainer}>
+            <LanguageSelector style={styles.languageSelector} />
             <View style={styles.logoPlaceholder}>
               <Ionicons name="log-in-outline" size={80} color="#fff" />
             </View>
@@ -265,13 +269,13 @@ export default function LoginScreen({ navigation }) {
               <AnimatedLetter letter="t" index={3} />
               <AnimatedLetter letter="a" index={4} />
             </View>
-            <Text style={styles.subtitle}>Giriş Yap</Text>
+            <Text style={styles.subtitle}>{t('login')}</Text>
           </View>
 
           <View style={styles.formContainer}>
             {renderInput({
               icon: "mail-outline",
-              placeholder: "E-posta",
+              placeholder: t('email'),
               value: email,
               onChangeText: setEmail,
               keyboardType: "email-address",
@@ -280,7 +284,7 @@ export default function LoginScreen({ navigation }) {
 
             {renderInput({
               icon: "lock-closed-outline",
-              placeholder: "Şifre",
+              placeholder: t('password'),
               value: password,
               onChangeText: setPassword,
               secureTextEntry: !showPassword,
@@ -295,7 +299,7 @@ export default function LoginScreen({ navigation }) {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.loginButtonText}>Giriş Yap</Text>
+                <Text style={styles.loginButtonText}>{t('login')}</Text>
               )}
             </TouchableOpacity>
 
@@ -304,8 +308,8 @@ export default function LoginScreen({ navigation }) {
               onPress={() => navigation.navigate("Register")}
             >
               <Text style={styles.registerLinkText}>
-                Hesabın yok mu?{" "}
-                <Text style={styles.registerLinkTextBold}>Kayıt Ol</Text>
+                {t('dontHaveAccount')}{" "}
+                <Text style={styles.registerLinkTextBold}>{t('register')}</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -330,6 +334,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 40,
     marginBottom: 30,
+  },
+  languageSelector: {
+    marginBottom: 20,
   },
   logoPlaceholder: {
     width: 120,

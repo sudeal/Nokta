@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { getConversationList } from '../services/MessageService';
 import { getCurrentUser } from '../services/UserService';
+import { useLanguage } from '../context/LanguageContext';
 
 // Geçici mesaj verileri
 const dummyMessages = [
@@ -63,6 +64,7 @@ const dummyMessages = [
 ];
 
 export default function MessagesScreen({ navigation }) {
+  const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +86,7 @@ export default function MessagesScreen({ navigation }) {
       setLoading(true);
       const user = await getCurrentUser();
       if (!user || !user.userID) {
-        Alert.alert('Error', 'Please login to view messages');
+        Alert.alert(language.messagesError, language.messagesLoginRequired);
         navigation.navigate('Login');
         return;
       }
@@ -99,7 +101,7 @@ export default function MessagesScreen({ navigation }) {
       console.error('Error loading messages:', error);
       // Use dummy data as fallback only if API completely fails
       setMessages(dummyMessages);
-      Alert.alert('Info', 'Using sample data. Please check your internet connection.');
+      Alert.alert(language.messagesInfo, language.messagesSampleData);
     } finally {
       setLoading(false);
     }
@@ -169,7 +171,7 @@ export default function MessagesScreen({ navigation }) {
     >
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Messages</Text>
+          <Text style={styles.headerTitle}>{language.messagesTitle}</Text>
         </View>
         
         <View style={styles.searchContainer}>
@@ -177,7 +179,7 @@ export default function MessagesScreen({ navigation }) {
             <Ionicons name="search" size={20} color="#fff" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search businesses..."
+              placeholder={language.messagesSearchPlaceholder}
               placeholderTextColor="rgba(255, 255, 255, 0.6)"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -188,7 +190,7 @@ export default function MessagesScreen({ navigation }) {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#4CC9F0" />
-            <Text style={styles.loadingText}>Loading messages...</Text>
+            <Text style={styles.loadingText}>{language.messagesLoading}</Text>
           </View>
         ) : filteredMessages.length > 0 ? (
           <FlatList
@@ -203,7 +205,7 @@ export default function MessagesScreen({ navigation }) {
         ) : (
           <View style={styles.emptyContainer}>
             <Ionicons name="chatbubble-ellipses-outline" size={60} color="rgba(255, 255, 255, 0.5)" />
-            <Text style={styles.emptyText}>No messages found</Text>
+            <Text style={styles.emptyText}>{language.messagesNoMessages}</Text>
           </View>
         )}
       </SafeAreaView>

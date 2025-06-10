@@ -12,37 +12,40 @@ import BusinessListScreen from "./screens/BusinessListScreen";
 import CalendarScreen from "./screens/CalendarScreen";
 import MessagesScreen from "./screens/MessagesScreen";
 import { StyleSheet } from "react-native";
+import { LanguageProvider } from "./context/LanguageContext";
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="NewBooking" component={NewBookingScreen} />
-        <Stack.Screen name="Notification" component={NotificationScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="Calendar" component={CalendarScreen} />
-        <Stack.Screen name="Messages" component={MessagesScreen} />
-        <Stack.Screen
-          name="BusinessList"
-          component={BusinessListScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="BusinessDetail"
-          component={BusinessDetailScreen}
-          options={{ headerShown: false }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <LanguageProvider>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen
+            name="Home"
+            component={HomeScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="NewBooking" component={NewBookingScreen} />
+          <Stack.Screen name="Notification" component={NotificationScreen} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="Calendar" component={CalendarScreen} />
+          <Stack.Screen name="Messages" component={MessagesScreen} />
+          <Stack.Screen
+            name="BusinessList"
+            component={BusinessListScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="BusinessDetail"
+            component={BusinessDetailScreen}
+            options={{ headerShown: false }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </LanguageProvider>
   );
 }
 

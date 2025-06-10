@@ -24,6 +24,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { MotiView } from "moti";
 import TemplateFeaturesBadge from "../components/TemplateFeaturesBadge";
 import { getBusinessReviews, calculateAverageRating, addBusinessReview } from '../services/BusinessReviewService';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get("window");
 const HEADER_HEIGHT = 300;
@@ -320,6 +321,7 @@ const CustomDatePicker = ({ isVisible, onClose, onSelect, colorScheme }) => {
 
 export default function BusinessDetailScreen({ route, navigation }) {
   const { business } = route.params;
+  const { language } = useLanguage();
   const colorScheme = getColorScheme(business?.category);
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = scrollY.interpolate({
@@ -361,11 +363,11 @@ export default function BusinessDetailScreen({ route, navigation }) {
   useEffect(() => {
     if (!userId) {
       Alert.alert(
-        "Error",
-        "Please login to book an appointment",
+        language.businessDetailErrorTitle,
+        language.businessDetailLoginRequired,
         [
           { 
-            text: "OK",
+            text: language.businessDetailOk,
             onPress: () => navigation.navigate('Login')
           }
         ]
@@ -548,16 +550,18 @@ export default function BusinessDetailScreen({ route, navigation }) {
       };
 
       Alert.alert(
-        "Invalid Time",
-        `Please select a time between ${formatTime(openingHour)} and ${formatTime(closingHour)}.`,
-        [{ text: "OK" }]
+        language.businessDetailInvalidTime,
+        `${language.businessDetailOutsideHours} ${formatTime(openingHour)} - ${formatTime(closingHour)}.`,
+        [{ text: language.businessDetailOk }]
       );
       return;
     }
 
-    // Check if appointment end time (start + 1 hour) is within business hours
-    const appointmentEndTimeInDecimal = selectedTimeInDecimal + 1; // Add 1 hour
-    if (appointmentEndTimeInDecimal > closingHour) {
+    // Check if appointment end time is within business hours
+    const endTime = new Date(dateTime.getTime() + 60 * 60 * 1000); // 1 hour later
+    const endTimeInDecimal = endTime.getHours() + (endTime.getMinutes() / 60);
+    
+    if (endTimeInDecimal > closingHour) {
       const formatTime = (hour) => {
         const hrs = Math.floor(hour);
         const mins = Math.round((hour - hrs) * 60);
@@ -565,23 +569,20 @@ export default function BusinessDetailScreen({ route, navigation }) {
       };
 
       Alert.alert(
-        "Invalid Time",
-        `Appointment duration is 1 hour. Please select a time that allows the appointment to finish before ${formatTime(closingHour)}.`,
-        [{ text: "OK" }]
+        language.businessDetailInvalidTime,
+        `${language.businessDetailOutsideHours} ${formatTime(openingHour)} - ${formatTime(closingHour)}.`,
+        [{ text: language.businessDetailOk }]
       );
       return;
     }
-
-    // Calculate end time for display
-    const endTime = new Date(dateTime.getTime() + 60 * 60 * 1000); // Add 1 hour
 
     // Check for appointment conflicts
     const conflictCheck = await checkAppointmentConflict(dateTime, endTime);
     if (conflictCheck.hasConflict) {
       Alert.alert(
-        "Time Slot Not Available",
+        language.businessDetailTimeSlotNotAvailable,
         conflictCheck.conflictMessage,
-        [{ text: "OK" }]
+        [{ text: language.businessDetailOk }]
       );
       return;
     }
@@ -629,11 +630,11 @@ export default function BusinessDetailScreen({ route, navigation }) {
   const createAppointment = async (startDateTime, endDateTime) => {
     if (!userId) {
       Alert.alert(
-        "Error",
-        "Please login to book an appointment",
+        language.businessDetailErrorTitle,
+        language.businessDetailLoginRequired,
         [
           { 
-            text: "OK",
+            text: language.businessDetailOk,
             onPress: () => navigation.navigate('Login')
           }
         ]
@@ -710,15 +711,15 @@ export default function BusinessDetailScreen({ route, navigation }) {
       };
 
       Alert.alert(
-        "Success!",
-        `Your 1-hour appointment has been booked successfully!\n\nTime: ${formatTime(localStartDate)} - ${formatTime(localEndDate)}`,
+        language.businessDetailSuccess,
+        language.businessDetailAppointmentBooked,
         [
           { 
             text: "View Appointments",
             onPress: () => navigation.navigate("Calendar")
           },
           {
-            text: "OK",
+            text: language.businessDetailOk,
             style: "cancel"
           }
         ]
@@ -731,9 +732,9 @@ export default function BusinessDetailScreen({ route, navigation }) {
       });
 
       Alert.alert(
-        "Error",
-        "Failed to book appointment. Please check the console for details.",
-        [{ text: "OK" }]
+        language.businessDetailBookingError,
+        language.businessDetailBookingFailed,
+        [{ text: language.businessDetailOk }]
       );
       throw error;
     }
@@ -794,12 +795,12 @@ export default function BusinessDetailScreen({ route, navigation }) {
 
   const handleSubmitReview = async () => {
     if (userRating === 0) {
-      Alert.alert('Error', 'Please select a rating');
+      Alert.alert(language.businessDetailErrorTitle, language.businessDetailSelectRating);
       return;
     }
     
     if (userComment.trim() === '') {
-      Alert.alert('Error', 'Please write a comment');
+      Alert.alert(language.businessDetailErrorTitle, language.businessDetailWriteComment);
       return;
     }
 
@@ -830,7 +831,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
       setUserComment('');
       setShowReviewModal(false);
       
-      Alert.alert('Successful', 'Your comment has been sent successfully!');
+      Alert.alert(language.businessDetailReviewSuccess, language.businessDetailReviewSubmitted);
     } catch (error) {
       console.error('Error submitting review:', error);
       
@@ -842,7 +843,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
           [{ text: 'Ok' }]
         );
       } else {
-        Alert.alert('Error', 'An error occurred while submitting the comment. Please try again.');
+        Alert.alert(language.businessDetailErrorTitle, language.businessDetailReviewError);
       }
     } finally {
       setSubmittingReview(false);
@@ -988,7 +989,9 @@ export default function BusinessDetailScreen({ route, navigation }) {
             transition={{ type: "timing", duration: 500, delay: 700 }}
             style={styles.section}
           >
-            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>Reviews</Text>
+            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>
+              {language.reviews}
+            </Text>
             <LinearGradient
               colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.1)']}
               style={[styles.sectionCard, { 
@@ -1012,7 +1015,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
                   onPress={() => setShowReviewModal(true)}
                 >
                   <Ionicons name="create-outline" size={18} color="#fff" />
-                  <Text style={styles.addReviewText}>Write a Review</Text>
+                  <Text style={styles.addReviewText}>{language.writeReview}</Text>
                 </TouchableOpacity>
               </View>
               
@@ -1044,7 +1047,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
                 </View>
               ) : (
                 <Text style={styles.noReviewsText}>
-                  No reviews yet. Be the first to write a review!
+                  {language.noReviews || 'No reviews yet. Be the first to write a review!'}
                 </Text>
               )}
             </LinearGradient>
@@ -1084,7 +1087,9 @@ export default function BusinessDetailScreen({ route, navigation }) {
             transition={{ type: "timing", duration: 500, delay: 200 }}
             style={styles.section}
           >
-            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>About</Text>
+            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>
+              {language.about}
+            </Text>
             <LinearGradient
               colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.1)']}
               style={[styles.sectionCard, { 
@@ -1105,7 +1110,9 @@ export default function BusinessDetailScreen({ route, navigation }) {
             transition={{ type: "timing", duration: 500, delay: 400 }}
             style={styles.section}
           >
-            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>Location</Text>
+            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>
+              {language.location}
+            </Text>
             <TouchableOpacity onPress={handleMap} disabled={!business?.address}>
               <LinearGradient
                 colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.1)']}
@@ -1131,7 +1138,9 @@ export default function BusinessDetailScreen({ route, navigation }) {
             transition={{ type: "timing", duration: 500, delay: 600 }}
             style={styles.section}
           >
-            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>Contact</Text>
+            <Text style={[styles.sectionTitle, { color: '#fff', fontSize: 20 }]}>
+              {language.contact}
+            </Text>
             <TouchableOpacity onPress={handleCall} disabled={!business?.contactNumber}>
               <LinearGradient
                 colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.1)']}
@@ -1166,7 +1175,7 @@ export default function BusinessDetailScreen({ route, navigation }) {
               end={{ x: 1, y: 0 }}
             >
               <Text style={[styles.buttonText, { fontSize: 18, fontWeight: '600' }]}>
-                Book 1-Hour Appointment
+                {language.bookAppointment}
               </Text>
             </LinearGradient>
           </TouchableOpacity>

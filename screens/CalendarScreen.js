@@ -12,8 +12,10 @@ import {
 import { Calendar } from 'react-native-calendars';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function CalendarScreen({ navigation }) {
+  const { t } = useLanguage();
   const today = new Date().toISOString().split('T')[0]; // Bugünün tarihi
   const [selectedDate, setSelectedDate] = useState(today); // Başlangıçta bugünü seçili yap
   const [appointments, setAppointments] = useState({});
@@ -168,8 +170,8 @@ export default function CalendarScreen({ navigation }) {
   // Randevu iptal etme işlemi
   const cancelAppointment = async (appointmentId, businessName) => {
     Alert.alert(
-      "Cancel Appointment",
-      `Are you sure you want to cancel your appointment at ${businessName}?`,
+      t('cancelAppointment'),
+      `${t('areYouSure') || 'Are you sure you want to cancel your appointment at'} ${businessName}?`,
       [
         {
           text: "No",
@@ -282,7 +284,7 @@ export default function CalendarScreen({ navigation }) {
     if (!selectedDate || !appointments[selectedDate] || appointments[selectedDate].length === 0) {
       return (
         <View style={styles.noAppointments}>
-          <Text style={styles.noAppointmentsText}>No appointments for this date</Text>
+          <Text style={styles.noAppointmentsText}>{t('noAppointments')}</Text>
         </View>
       );
     }
@@ -337,7 +339,7 @@ export default function CalendarScreen({ navigation }) {
                 onPress={() => cancelAppointment(appointment.id, appointment.businessName)}
               >
                 <Ionicons name="close-circle-outline" size={20} color="#FF6B6B" />
-                <Text style={styles.cancelButtonText}>Cancel Appointment</Text>
+                <Text style={styles.cancelButtonText}>{t('cancelAppointment')}</Text>
               </TouchableOpacity>
             )}
           </LinearGradient>
@@ -428,13 +430,13 @@ export default function CalendarScreen({ navigation }) {
                     style={styles.cancelButton}
                     onPress={() => cancelAppointment(appointment.id, appointment.businessName)}
                   >
-                    <Ionicons name="close-circle-outline" size={20} color="#FF6B6B" />
-                    <Text style={styles.cancelButtonText}>Cancel Appointment</Text>
-                  </TouchableOpacity>
-                )}
-              </LinearGradient>
-            ))}
-          </View>
+                                      <Ionicons name="close-circle-outline" size={20} color="#FF6B6B" />
+                  <Text style={styles.cancelButtonText}>{t('cancelAppointment')}</Text>
+                </TouchableOpacity>
+              )}
+            </LinearGradient>
+          ))}
+        </View>
         ))}
       </ScrollView>
     );
@@ -488,8 +490,8 @@ export default function CalendarScreen({ navigation }) {
         <View style={styles.appointmentsContainer}>
           <Text style={styles.sectionTitle}>
             {selectedDate 
-              ? `Appointments for ${selectedDate}` 
-              : 'All Appointments'}
+              ? `${t('appointmentsFor')} ${selectedDate}` 
+              : t('allAppointments')}
           </Text>
           
           {selectedDate && appointments[selectedDate] && appointments[selectedDate].length > 0

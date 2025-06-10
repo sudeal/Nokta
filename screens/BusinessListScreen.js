@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import useLocation from "../hooks/useLocation";
 import { getBusinessReviews, calculateAverageRating } from '../services/BusinessReviewService';
+import { useLanguage } from '../context/LanguageContext';
 
 const categoryData = {
   "Health Services": {
@@ -26,14 +27,14 @@ const categoryData = {
       { name: "Vet", icon: "paw-outline" },
     ],
   },
-  "Food & Beverages": {
+  "Food & Beverage": {
     color: ["#FF9966", "#FF5E62"],
     icon: "restaurant",
     subcategories: [
-      { name: "Restaurants", icon: "restaurant-outline" },
-      { name: "Desserts", icon: "ice-cream-outline" },
+      { name: "Restaurant", icon: "restaurant-outline" },
+      { name: "Dessert", icon: "ice-cream-outline" },
       { name: "Fine Dining", icon: "wine-outline" },
-      { name: "Pub & Bars", icon: "beer-outline" },
+      { name: "Pub & Bar", icon: "beer-outline" },
     ],
   },
   "Personal Care": {
@@ -85,12 +86,24 @@ const formatHourToTime = (decimalHour) => {
 };
 
 export default function BusinessListScreen({ route, navigation }) {
+  const { language, getCategoryMapping, getUICategoryName } = useLanguage();
   const { category } = route.params;
-  const categoryInfo = categoryData[category] || {
+  
+  // UI kategorisini database kategorisine çevir
+  const dbCategory = getCategoryMapping(category);
+  
+  const categoryInfo = categoryData[dbCategory] || {
     color: ["#1A1A1A", "#2D2D2D"],
     icon: "business",
     subcategories: [],
   };
+  
+  console.log('=== TÜRKÇE DEBUG ===');
+  console.log('Original category from route:', category);
+  console.log('Mapped dbCategory:', dbCategory);
+  console.log('categoryData keys:', Object.keys(categoryData));
+  console.log('categoryData[dbCategory] exists:', !!categoryData[dbCategory]);
+  console.log('categoryInfo subcategories:', categoryInfo.subcategories.map(s => s.name));
   
   // Her alt kategori için ayrı state tutuyoruz
   const [businessesByCategory, setBusinessesByCategory] = useState({});
@@ -161,6 +174,8 @@ export default function BusinessListScreen({ route, navigation }) {
     
     setLoading(true);
     try {
+      console.log('Fetching businesses for subcategory:', subcategory.name);
+      
       const response = await fetch(
         "https://nokta-appservice.azurewebsites.net/api/Business"
       );
@@ -170,77 +185,109 @@ export default function BusinessListScreen({ route, navigation }) {
       }
       
       const data = await response.json();
+      console.log('Total businesses from API:', data.length);
+      console.log('First 10 business names:', data.slice(0, 10).map(b => b.name));
+      
       let filteredBusinesses = data;
 
-      // Kategori bazında filtreleme
-      if (category === "Food & Beverages") {
-        switch (subcategory.name) {
-          case "Restaurants":
+      // Kategori bazında filtreleme - UI kategorilerini veritabanı kategorilerine map ediyoruz
+      const dbSubcategory = getCategoryMapping(subcategory.name);
+
+      console.log('Category mapping:', {
+        uiCategory: category,
+        dbCategory: dbCategory,
+        uiSubcategory: subcategory.name,
+        dbSubcategory: dbSubcategory
+      });
+
+      // Dinamik filtreleme - veritabanındaki İngilizce isimleri kullanarak filtrele
+      if (dbCategory === "Food & Beverage") {
+        console.log('Filtering for Food & Beverage, subcategory:', dbSubcategory);
+        
+        switch (dbSubcategory) {
+          case "Restaurant":
             filteredBusinesses = data.filter((business) => 
               business.name.startsWith("Restaurant -")
             );
+            console.log('Restaurant businesses found:', filteredBusinesses.length);
             break;
-          case "Desserts":
+          case "Dessert":
             filteredBusinesses = data.filter((business) => 
-              business.name.startsWith("Dessert -") ||
-              business.name.startsWith("Pastry -")
+              business.name.startsWith("Dessert -")
             );
+            console.log('Dessert businesses found:', filteredBusinesses.length);
             break;
           case "Fine Dining":
             filteredBusinesses = data.filter((business) => 
               business.name.startsWith("Fine Dining -")
             );
+            console.log('Fine Dining businesses found:', filteredBusinesses.length);
             break;
-          case "Pub & Bars":
+          case "Pub & Bar":
             filteredBusinesses = data.filter((business) => 
-              business.name.startsWith("Pub -") ||
-              business.name.startsWith("Bar -")
+              business.name.startsWith("Pub & Bar -")
             );
+            console.log('Pub & Bar businesses found:', filteredBusinesses.length);
+            break;
+          default:
+            console.log('No specific filter for subcategory:', dbSubcategory);
             break;
         }
-      } else if (category === "Health Services") {
-        switch (subcategory.name) {
+      } else if (dbCategory === "Health Services") {
+        console.log('Filtering for Health Services, subcategory:', dbSubcategory);
+        
+        switch (dbSubcategory) {
           case "Doctor":
             filteredBusinesses = data.filter((business) => 
               business.name.startsWith("Doctor -")
             );
+            console.log('Doctor businesses found:', filteredBusinesses.length);
             break;
           case "Dentist":
             filteredBusinesses = data.filter((business) => 
               business.name.startsWith("Dentist -")
             );
+            console.log('Dentist businesses found:', filteredBusinesses.length);
             break;
           case "Vet":
             filteredBusinesses = data.filter((business) => 
               business.name.startsWith("Vet -")
             );
+            console.log('Vet businesses found:', filteredBusinesses.length);
             break;
         }
-      } else if (category === "Personal Care") {
-        switch (subcategory.name) {
+      } else if (dbCategory === "Personal Care") {
+        console.log('Filtering for Personal Care, subcategory:', dbSubcategory);
+        
+        switch (dbSubcategory) {
           case "Male Coiffure":
             filteredBusinesses = data.filter((business) => 
               business.name.startsWith("Male Coiffure -")
             );
+            console.log('Male Coiffure businesses found:', filteredBusinesses.length);
             break;
           case "Female Coiffure":
             filteredBusinesses = data.filter((business) => 
               business.name.startsWith("Female Coiffure -")
             );
+            console.log('Female Coiffure businesses found:', filteredBusinesses.length);
             break;
-          case "Nail Studios":
+          case "Nail Studio":
             filteredBusinesses = data.filter((business) => 
               business.name.startsWith("Nail Studio -")
             );
+            console.log('Nail Studio businesses found:', filteredBusinesses.length);
             break;
           case "Tattoo & Piercing":
             filteredBusinesses = data.filter((business) => 
-              business.name.startsWith("Tattoo -") ||
-              business.name.startsWith("Piercing -")
+              business.name.startsWith("Tattoo & Piercing -")
             );
+            console.log('Tattoo & Piercing businesses found:', filteredBusinesses.length);
             break;
         }
       }
+
+      console.log('Final filtered businesses count:', filteredBusinesses.length);
 
       // Filtrelenmiş işletmeleri ilgili kategoriye kaydet
       setBusinessesByCategory(prev => ({
@@ -284,7 +331,7 @@ export default function BusinessListScreen({ route, navigation }) {
               },
             ]}
           >
-            <Text style={styles.noResultsText}>İşletme bulunamadı</Text>
+            <Text style={styles.noResultsText}>{language.businessListNoBusinessFound}</Text>
           </Animated.View>
         );
       }
@@ -339,7 +386,7 @@ export default function BusinessListScreen({ route, navigation }) {
                             ? `${formatHourToTime(
                                 business.openingHour
                               )} - ${formatHourToTime(business.closingHour)}`
-                            : "Hours not available"}
+                            : language.businessListHoursNotAvailable}
                         </Text>
                       </View>
                       <View style={styles.distanceContainer}>
@@ -349,7 +396,7 @@ export default function BusinessListScreen({ route, navigation }) {
                           color="rgba(255, 255, 255, 0.9)"
                         />
                         <Text style={styles.distanceText}>
-                          {currentAddress?.district || "Loading location..."}
+                          {currentAddress?.district || language.businessListLoadingLocation}
                         </Text>
                       </View>
                     </View>
@@ -366,7 +413,7 @@ export default function BusinessListScreen({ route, navigation }) {
                           </Text>
                         </>
                       ) : (
-                        <Text style={styles.noRatingText}>No ratings yet</Text>
+                        <Text style={styles.noRatingText}>{language.businessListNoRatings}</Text>
                       )}
                     </View>
                   </View>
@@ -381,6 +428,7 @@ export default function BusinessListScreen({ route, navigation }) {
       );
     }
 
+    // Subcategories görünümü
     return (
       <Animated.View
         style={[
@@ -412,7 +460,7 @@ export default function BusinessListScreen({ route, navigation }) {
                 />
               </View>
               <Text style={styles.subcategoryTitle}>
-                {subcategory.name || "Unknown Category"}
+                {getUICategoryName(subcategory.name) || "Unknown Category"}
               </Text>
               <View style={styles.arrowContainer}>
                 <Ionicons name="arrow-forward" size={20} color="#fff" />
@@ -476,7 +524,7 @@ export default function BusinessListScreen({ route, navigation }) {
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {selectedSubcategory ? selectedSubcategory.name : category}
+            {selectedSubcategory ? getUICategoryName(selectedSubcategory.name) : category}
           </Text>
         </Animated.View>
 
@@ -618,52 +666,43 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 8,
+    marginBottom: 8,
   },
   businessHoursContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    flex: 1,
   },
   businessHours: {
-    fontSize: 14,
+    fontSize: 12,
     color: "rgba(255, 255, 255, 0.9)",
     marginLeft: 4,
-    fontWeight: "500",
   },
   distanceContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  distanceText: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.9)",
-    marginLeft: 4,
-    fontWeight: "500",
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  ratingText: {
-    color: '#fff',
-    fontSize: 14,
     marginLeft: 8,
   },
-  reviewCount: {
-    color: 'rgba(255, 255, 255, 0.7)',
+  distanceText: {
     fontSize: 12,
+    color: "rgba(255, 255, 255, 0.9)",
+    marginLeft: 4,
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ratingText: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.9)",
+    marginLeft: 4,
+  },
+  reviewCount: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.7)",
   },
   noRatingText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 14,
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.7)",
   },
 });
