@@ -1,44 +1,62 @@
 import React, { useState, useEffect } from "react";
 import { useLanguage } from '../contexts/LanguageContext';
+import './Profile.css';
 
 const Profile = () => {
   const { translations, isEnglish } = useLanguage();
-  const t = translations?.menu?.profile;
+  const t = translations?.profile;
 
   // Helper function to get the correct translation
   const getTranslation = (key) => {
     if (!t) return key;
     
-    // Split the key by dots to handle nested translations
     const keys = key.split('.');
     let current = t;
     
-    // Navigate through the nested structure
     for (const k of keys) {
-      if (!current[k]) return key;
+      if (!current || !current[k]) return key;
       current = current[k];
     }
     
     // Return the correct language version
+    if (current && typeof current === 'object' && (current.en || current.tr)) {
+      return isEnglish ? current.en : current.tr;
+    }
+    
+    return current || key;
+  };
+
+  // Simple translation helper for direct access
+  const getText = (path) => {
+    const keys = path.split('.');
+    let current = t;
+    
+    for (const key of keys) {
+      if (!current || !current[key]) return path;
+      current = current[key];
+    }
+    
     return isEnglish ? current.en : current.tr;
   };
 
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const fetchBusinessData = async () => {
       try {
         setLoading(true);
         
-        // Get user data from localStorage
         const storedUserData = localStorage.getItem("userData");
         if (!storedUserData) {
           throw new Error(getTranslation('notLoggedIn.message'));
         }
         
-        // Parse the stored data
         const parsedUserData = JSON.parse(storedUserData);
         const businessId = parsedUserData.businessID || parsedUserData.id;
         
@@ -46,7 +64,6 @@ const Profile = () => {
           throw new Error(getTranslation('error.businessIdNotFound'));
         }
         
-        // Fetch the business data using the ID from localStorage
         const response = await fetch(`https://nokta-appservice.azurewebsites.net/api/Business/${businessId}`);
         
         if (!response.ok) {
@@ -55,6 +72,7 @@ const Profile = () => {
         
         const data = await response.json();
         setUserData(data);
+        setEditData(data);
       } catch (err) {
         console.error("Error fetching business data:", err);
         setError(err.message);
@@ -66,7 +84,6 @@ const Profile = () => {
     fetchBusinessData();
   }, []);
 
-  // Format opening/closing hours to readable time
   const formatTime = (hour) => {
     const hours = Math.floor(hour);
     const minutes = Math.round((hour - hours) * 60);
@@ -75,7 +92,6 @@ const Profile = () => {
     return `${formattedHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
   };
 
-  // Format date to a readable format
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -86,523 +102,412 @@ const Profile = () => {
     });
   };
 
-  // Add a component for when user is not logged in
-  const NotLoggedInMessage = () => (
-    <div style={{ 
-      backgroundColor: 'rgba(28, 32, 55, 0.7)', 
-      borderRadius: '8px', 
-      padding: '30px',
-      margin: '20px auto',
-      maxWidth: '600px',
-      textAlign: 'center',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-    }}>
-      <div style={{
-        fontSize: '50px',
-        marginBottom: '20px'
-      }}>
-        👤
-      </div>
-      <h2 style={{ 
-        color: 'white', 
-        fontSize: '24px', 
-        marginBottom: '15px' 
-      }}>
-        {getTranslation('notLoggedIn.title')}
-      </h2>
-      <p style={{ 
-        color: 'rgba(255, 255, 255, 0.7)',
-        marginBottom: '25px',
-        lineHeight: '1.5'
-      }}>
-        {getTranslation('notLoggedIn.message')}
-      </p>
-      <button style={{
-        backgroundColor: '#3f51b5',
-        color: 'white',
-        border: 'none',
-        padding: '12px 24px',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        fontSize: '16px'
-      }} onClick={() => window.location.href = '/login'}>
-        {getTranslation('notLoggedIn.loginButton')}
-      </button>
-    </div>
-  );
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+    if (!isEditing) {
+      setEditData(userData);
+    }
+  };
 
-  // Error types with corresponding UI
-  const getErrorContent = (errorMessage) => {
-    if (errorMessage.includes(getTranslation('notLoggedIn.message'))) {
-      return <NotLoggedInMessage />;
+  const handleInputChange = (field, value) => {
+    setEditData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch(`https://nokta-appservice.azurewebsites.net/api/Business/${userData.businessID || userData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editData)
+      });
+
+      if (response.ok) {
+        setUserData(editData);
+        setIsEditing(false);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      } else {
+        throw new Error('Failed to update profile');
+      }
+          } catch (err) {
+        console.error('Error updating profile:', err);
+        alert('Failed to update profile. Please try again.');
+      } finally {
+      setSaving(false);
     }
-    
-    if (errorMessage.includes(getTranslation('error.businessIdNotFound'))) {
-      return (
-        <div style={{ 
-          backgroundColor: 'rgba(28, 32, 55, 0.7)', 
-          borderRadius: '8px', 
-          padding: '20px',
-          margin: '20px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-        }}>
-          <h1 style={{ 
-            color: 'white', 
-            fontSize: '28px', 
-            fontWeight: 'bold',
-            marginBottom: '20px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
-            paddingBottom: '16px',
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <span style={{ 
-              fontSize: '24px', 
-              marginRight: '10px',
-              backgroundColor: 'rgba(244, 67, 54, 0.25)',
-              padding: '6px',
-              borderRadius: '8px',
-              display: 'inline-flex'
-            }}>
-              ⚠️
-            </span>
-            {getTranslation('error.profileDataIssue')}
-          </h1>
-          <div style={{
-            backgroundColor: 'rgba(244, 67, 54, 0.1)', 
-            padding: '15px',
-            borderRadius: '8px',
-            color: 'white'
-          }}>
-            <p>{getTranslation('error.contactSupport')}</p>
-          </div>
-          <button style={{
-            backgroundColor: '#3f51b5',
-            color: 'white',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            marginTop: '20px'
-          }} onClick={() => window.location.reload()}>
-            {getTranslation('tryAgain')}
-          </button>
-        </div>
-      );
-    }
-    
-    // Default error UI
-    return (
-      <div style={{ 
-        backgroundColor: 'rgba(28, 32, 55, 0.7)', 
-        borderRadius: '8px', 
-        padding: '20px',
-        margin: '20px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-      }}>
-        <h1 style={{ 
-          color: 'white', 
-          fontSize: '28px', 
-          fontWeight: 'bold',
-          marginBottom: '20px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
-          paddingBottom: '16px',
-          display: 'flex',
-          alignItems: 'center'
-        }}>
-          <span style={{ 
-            fontSize: '24px', 
-            marginRight: '10px',
-            backgroundColor: 'rgba(244, 67, 54, 0.25)',
-            padding: '6px',
-            borderRadius: '8px',
-            display: 'inline-flex'
-          }}>
-            ⚠️
-          </span>
-          {getTranslation('error.loadingProfile')}
-        </h1>
-        <div style={{
-          backgroundColor: 'rgba(244, 67, 54, 0.1)', 
-          padding: '15px',
-          borderRadius: '8px',
-          color: 'white'
-        }}>
-          {errorMessage}
-        </div>
-        <button style={{
-          backgroundColor: '#3f51b5',
-          color: 'white',
-          border: 'none',
-          padding: '10px 20px',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          marginTop: '20px'
-        }} onClick={() => window.location.reload()}>
-          {getTranslation('tryAgain')}
-        </button>
-      </div>
-    );
+  };
+
+  const handleCancel = () => {
+    setEditData(userData);
+    setIsEditing(false);
   };
 
   if (error) {
-    return getErrorContent(error);
+    return (
+      <div className="profile-container">
+        <div className="error-card">
+          <div className="error-icon">⚠️</div>
+          <h2>Error</h2>
+          <p>{error}</p>
+          <button className="btn-primary" onClick={() => window.location.reload()}>
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (loading) {
     return (
-      <div style={{ 
-        backgroundColor: 'rgba(28, 32, 55, 0.7)', 
-        borderRadius: '8px', 
-        padding: '40px',
-        margin: '20px',
-        textAlign: 'center',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-      }}>
-        <div style={{ 
-          color: 'white', 
-          fontSize: '18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '10px'
-        }}>
-          <div style={{
-            width: '20px',
-            height: '20px',
-            border: '2px solid rgba(255,255,255,0.3)',
-            borderTop: '2px solid white',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }}></div>
-          {getTranslation('loading')}
+      <div className="profile-container">
+        <div className="loading-card">
+          <div className="loading-spinner"></div>
+          <p>Loading profile...</p>
         </div>
-        <style>
-          {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
-        </style>
       </div>
     );
   }
 
   if (!userData) return null;
 
-  // Determine active features
   const features = [
-    { name: "Messaging", isActive: userData.hasMessaging },
-    { name: "Statistics", isActive: userData.hasStatistics },
-    { name: "Menu Prices", isActive: userData.hasMenuPrices },
-    { name: "Directions", isActive: userData.hasDirections }
+    { 
+      name: "messaging", 
+      isActive: userData.hasMessaging,
+      icon: "💬",
+      label: isEnglish ? "Messaging" : "Mesajlaşma"
+    },
+    { 
+      name: "statistics", 
+      isActive: userData.hasStatistics,
+      icon: "📊",
+      label: isEnglish ? "Statistics" : "İstatistikler"
+    },
+    { 
+      name: "menu", 
+      isActive: userData.hasMenuPrices,
+      icon: "🍽️",
+      label: isEnglish ? "Menu & Prices" : "Menü ve Fiyatlar"
+    },
+    { 
+      name: "directions", 
+      isActive: userData.hasDirections,
+      icon: "🗺️",
+      label: isEnglish ? "Directions" : "Yol Tarifi"
+    }
   ];
 
   return (
-    <div style={{ 
-      backgroundColor: '#282c44', // Main background color
-      minHeight: '100vh', 
-      padding: '20px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'flex-start', 
-      position: 'relative'
-    }}>
-      {/* "Logged in as" banner */}
-      <div style={{
-        position: 'absolute',
-        top: '30px',
-        right: '30px',
-        backgroundColor: '#4CAF50',
-        color: 'white',
-        padding: '8px 15px',
-        borderRadius: '5px',
-        fontSize: '14px',
-        fontWeight: 'bold',
-        zIndex: 10
-      }}>
-        • Logged in as Fine Dining - Cumba
+    <div className="profile-container">
+      {/* Success Message */}
+      {showSuccess && (
+        <div className="success-toast">
+          <span className="success-icon">✅</span>
+          {isEnglish ? 'Profile updated successfully!' : 'Profil başarıyla güncellendi!'}
+        </div>
+      )}
+
+      {/* Header Section */}
+      <div className="profile-header">
+        <div className="profile-header-content">
+          <div className="profile-avatar">
+            <div className="avatar-circle">
+              {userData?.name ? userData.name.charAt(0).toUpperCase() : 'B'}
+            </div>
+            <div className="status-indicator online"></div>
+          </div>
+          
+          <div className="profile-header-info">
+            <div className="profile-title">
+              <h1>{userData?.name || 'Business Name'}</h1>
+              <span className="business-id">ID: {userData?.businessID || userData?.id || 'N/A'}</span>
+            </div>
+            
+            <div className="profile-meta">
+              <span className="category-badge">
+                <span className="category-icon">🏢</span>
+                {userData?.category || 'Business'}
+              </span>
+              
+              <span className="hours-badge">
+                <span className="hours-icon">🕒</span>
+                {userData?.openingHour && userData?.closingHour 
+                  ? `${formatTime(userData.openingHour)} - ${formatTime(userData.closingHour)}`
+                  : 'Hours not set'
+                }
+              </span>
+            </div>
+          </div>
+
+          <div className="profile-actions">
+            {!isEditing ? (
+              <button className="btn-primary" onClick={handleEditToggle}>
+                <span className="btn-icon">✏️</span>
+                {isEnglish ? 'Edit Profile' : 'Profili Düzenle'}
+              </button>
+            ) : (
+              <div className="edit-actions">
+                <button 
+                  className="btn-success" 
+                  onClick={handleSave} 
+                  disabled={saving}
+                >
+                  <span className="btn-icon">
+                    {saving ? "⏳" : "💾"}
+                  </span>
+                  {saving ? (isEnglish ? 'Saving...' : 'Kaydediliyor...') : (isEnglish ? 'Save Changes' : 'Değişiklikleri Kaydet')}
+                </button>
+                <button className="btn-secondary" onClick={handleCancel}>
+                  <span className="btn-icon">❌</span>
+                  {isEnglish ? 'Cancel' : 'İptal'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Main Profile Card */}
-      <div style={{ 
-        backgroundColor: 'rgba(28, 32, 55, 0.95)', 
-        borderRadius: '12px', 
-        width: '90%', 
-        maxWidth: '800px', 
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-        overflow: 'hidden',
-        marginTop: '50px'
-      }}>
-        {/* Business Profile Header Section */}
-        <div style={{
-          backgroundColor: '#383c5a',
-          padding: '30px',
-          textAlign: 'center',
-          position: 'relative'
-        }}>
-          {/* Business Profile Title */}
-          <h2 style={{
-            color: 'white',
-            fontSize: '28px',
-            fontWeight: '600',
-            margin: '0 0 20px 0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px'
-          }}>
-            <span style={{ fontSize: '24px' }}>👤</span>
-            {getTranslation('title')}
-          </h2>
-
-          {/* Profile Picture / Initial */}
-          <div style={{
-            width: '100px',
-            height: '100px',
-            borderRadius: '50%',
-            backgroundColor: '#3f51b5',
-            color: 'white',
-            fontSize: '48px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 15px auto',
-            border: '3px solid rgba(255, 255, 255, 0.3)'
-          }}>
-            {userData?.name ? userData.name.charAt(0).toUpperCase() : 'F'}
+      {/* Main Content */}
+      <div className="profile-content">
+        {/* Business Information Card */}
+        <div className="info-card">
+          <div className="card-header">
+            <h2>
+              <span className="card-icon">📋</span>
+              {isEnglish ? 'Business Information' : 'İşletme Bilgileri'}
+            </h2>
           </div>
-
-          {/* ID Tag */}
-          <div style={{
-            backgroundColor: '#8BC34A',
-            color: 'white',
-            padding: '4px 10px',
-            borderRadius: '15px',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            display: 'inline-block',
-            marginTop: '-40px',
-            position: 'relative',
-            zIndex: 5
-          }}>
-            ID: {userData?.businessID || userData?.id || 'N/A'}
-          </div>
-
-          <h3 style={{ color: 'white', fontSize: '24px', margin: '20px 0 5px 0' }}>{userData?.name || 'Fine Dining - Cumba'}</h3>
-          <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '16px', margin: '0 0 15px 0' }}>{userData?.category || 'Food & Beverage'}</p>
-
-          {/* Opening Hours & Template ID */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '25px' }}>
-            <span style={{
-              backgroundColor: '#3f51b5',
-              color: 'white',
-              padding: '6px 12px',
-              borderRadius: '20px',
-              fontSize: '14px'
-            }}>
-              {userData?.openingHour && userData?.closingHour ? `${formatTime(userData.openingHour)} - ${formatTime(userData.closingHour)}` : 'N/A'}
-            </span>
-            <span style={{
-              backgroundColor: '#8BC34A',
-              color: 'white',
-              padding: '6px 12px',
-              borderRadius: '20px',
-              fontSize: '14px'
-            }}>
-              Template ID #{userData?.templateID || 'N/A'}
-            </span>
-          </div>
-
-          {/* Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
-            <button
-              style={{
-                backgroundColor: '#3f51b5',
-                color: 'white',
-                border: '1px solid #3f51b5',
-                padding: '12px 24px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                minWidth: '180px',
-                transition: 'all 0.3s ease',
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#303f9f'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#3f51b5'}
-            >
-              {getTranslation('actions.editProfile')}
-            </button>
-            <button
-              style={{
-                backgroundColor: 'transparent',
-                color: 'white',
-                border: '1px solid #3f51b5',
-                padding: '12px 24px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                minWidth: '180px',
-                transition: 'all 0.3s ease',
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(63, 81, 181, 0.2)'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              {getTranslation('actions.changePassword')}
-            </button>
-          </div>
-        </div>
-
-        {/* Business Details Section */}
-        <div style={{
-          backgroundColor: 'rgba(40, 44, 68, 0.8)',
-          borderRadius: '0',
-          padding: '30px',
-          marginBottom: '0',
-          boxShadow: 'none',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-        }}>
-          <h2 style={{ 
-            color: 'white', 
-            marginBottom: '20px', 
-            fontSize: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}>
-            <span style={{ fontSize: '24px' }}>📁</span> {getTranslation('businessInfo.title')}
-          </h2>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '20px'
-          }}>
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)', 
-                fontSize: '14px', 
-                marginBottom: '8px',
-                display: 'block'
-              }}>
-                {getTranslation('businessInfo.owner')}
-              </label>
-              <div style={{ color: 'white', fontSize: '16px' }}>{userData?.ownerName || 'N/A'}</div>
-            </div>
-
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)', 
-                fontSize: '14px', 
-                marginBottom: '8px',
-                display: 'block'
-              }}>
-                {getTranslation('businessInfo.email')}
-              </label>
-              <div style={{ color: 'white', fontSize: '16px' }}>{userData?.email || 'N/A'}</div>
-            </div>
-
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)', 
-                fontSize: '14px', 
-                marginBottom: '8px',
-                display: 'block'
-              }}>
-                {getTranslation('businessInfo.phone')}
-              </label>
-              <div style={{ color: 'white', fontSize: '16px' }}>{userData?.contactNumber || 'N/A'}</div>
-            </div>
-
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)', 
-                fontSize: '14px', 
-                marginBottom: '8px',
-                display: 'block'
-              }}>
-                {getTranslation('businessInfo.address')}
-              </label>
-              <div style={{ color: 'white', fontSize: '16px' }}>{userData?.address || 'N/A'}</div>
-            </div>
-
-            <div>
-              <label style={{ 
-                color: 'rgba(255, 255, 255, 0.6)', 
-                fontSize: '14px', 
-                marginBottom: '8px',
-                display: 'block'
-              }}>
-                {getTranslation('businessInfo.memberSince')}
-              </label>
-              <div style={{ color: 'white', fontSize: '16px' }}>{formatDate(userData?.memberSince)}</div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '20px' }}>
-            <label style={{ 
-              color: 'rgba(255, 255, 255, 0.6)', 
-              fontSize: '14px', 
-              marginBottom: '8px',
-              display: 'block'
-            }}>
-              {getTranslation('businessInfo.description')}
-            </label>
-            <div style={{ color: 'white', fontSize: '16px' }}>{userData?.description || '-'}</div>
-          </div>
-        </div>
-
-        {/* Activated Features Section */}
-        <div style={{
-          backgroundColor: 'rgba(40, 44, 68, 0.8)',
-          borderRadius: '0',
-          padding: '30px',
-          marginBottom: '0',
-          boxShadow: 'none',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-        }}>
-          <h2 style={{ 
-            color: 'white', 
-            marginBottom: '20px', 
-            fontSize: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}>
-            <span style={{ fontSize: '24px' }}>✨</span> {getTranslation('activatedFeatures.title')}
-          </h2>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '15px'
-          }}>
-            {features.map((feature, index) => (
-              <div key={index} style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                padding: '15px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <span style={{ 
-                  fontSize: '20px', 
-                  color: feature.isActive ? '#8BC34A' : 'gray'
-                }}>
-                  {feature.isActive ? '✓' : '✗'}
-                </span>
-                <div style={{ color: 'white' }}>{getTranslation(`services.${feature.name.toLowerCase().replace(/ /g, '')}`)}</div>
+          
+          <div className="card-content">
+            <div className="info-grid">
+              <div className="info-item">
+                <label>{isEnglish ? 'Owner' : 'İşletme Sahibi'}</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData?.ownerName || ''}
+                    onChange={(e) => handleInputChange('ownerName', e.target.value)}
+                    className="form-input"
+                  />
+                ) : (
+                  <span>{userData?.ownerName || 'N/A'}</span>
+                )}
               </div>
-            ))}
+
+              <div className="info-item">
+                <label>{isEnglish ? 'Email' : 'E-posta'}</label>
+                {isEditing ? (
+                  <input
+                    type="email"
+                    value={editData?.email || ''}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className="form-input"
+                  />
+                ) : (
+                  <span>{userData?.email || 'N/A'}</span>
+                )}
+              </div>
+
+              <div className="info-item">
+                <label>{isEnglish ? 'Phone' : 'Telefon'}</label>
+                {isEditing ? (
+                  <input
+                    type="tel"
+                    value={editData?.contactNumber || ''}
+                    onChange={(e) => handleInputChange('contactNumber', e.target.value)}
+                    className="form-input"
+                  />
+                ) : (
+                  <span>{userData?.contactNumber || 'N/A'}</span>
+                )}
+              </div>
+
+              <div className="info-item">
+                <label>{isEnglish ? 'Business Name' : 'İşletme Adı'}</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData?.name || ''}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="form-input"
+                  />
+                ) : (
+                  <span>{userData?.name || 'N/A'}</span>
+                )}
+              </div>
+
+              <div className="info-item">
+                <label>{isEnglish ? 'Category' : 'Kategori'}</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData?.category || ''}
+                    onChange={(e) => handleInputChange('category', e.target.value)}
+                    className="form-input"
+                  />
+                ) : (
+                  <span>{userData?.category || 'N/A'}</span>
+                )}
+              </div>
+
+              <div className="info-item">
+                <label>{isEnglish ? 'Member Since' : 'Üyelik Tarihi'}</label>
+                <span>{formatDate(userData?.memberSince)}</span>
+              </div>
+            </div>
+
+            <div className="info-item full-width">
+              <label>{isEnglish ? 'Address' : 'Adres'}</label>
+              {isEditing ? (
+                <textarea
+                  value={editData?.address || ''}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  className="form-textarea"
+                  rows="2"
+                />
+              ) : (
+                <span>{userData?.address || 'N/A'}</span>
+              )}
+            </div>
+
+            <div className="info-item full-width">
+              <label>{isEnglish ? 'Description' : 'Açıklama'}</label>
+              {isEditing ? (
+                <textarea
+                  value={editData?.description || ''}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  className="form-textarea"
+                  rows="3"
+                />
+              ) : (
+                <span>{userData?.description || (isEnglish ? 'No description provided' : 'Açıklama girilmemiş')}</span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Last updated text */}
-        <div style={{ textAlign: 'right', padding: '15px 30px', color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px' }}>
-          {getTranslation('lastUpdated')} {formatDate(new Date())}
+        {/* Working Hours Card */}
+        <div className="info-card">
+          <div className="card-header">
+            <h2>
+              <span className="card-icon">⏰</span>
+              {isEnglish ? 'Working Hours' : 'Çalışma Saatleri'}
+            </h2>
+          </div>
+          
+          <div className="card-content">
+            <div className="hours-grid">
+              <div className="hours-item">
+                <label>{isEnglish ? 'Opening Time' : 'Açılış Saati'}</label>
+                {isEditing ? (
+                  <input
+                    type="number"
+                    min="0"
+                    max="24"
+                    step="0.5"
+                    value={editData?.openingHour || ''}
+                    onChange={(e) => handleInputChange('openingHour', parseFloat(e.target.value))}
+                    className="form-input"
+                  />
+                ) : (
+                  <span className="hours-value">
+                    {userData?.openingHour ? formatTime(userData.openingHour) : (isEnglish ? 'Not set' : 'Belirlenmemiş')}
+                  </span>
+                )}
+              </div>
+
+              <div className="hours-item">
+                <label>{isEnglish ? 'Closing Time' : 'Kapanış Saati'}</label>
+                {isEditing ? (
+                  <input
+                    type="number"
+                    min="0"
+                    max="24"
+                    step="0.5"
+                    value={editData?.closingHour || ''}
+                    onChange={(e) => handleInputChange('closingHour', parseFloat(e.target.value))}
+                    className="form-input"
+                  />
+                ) : (
+                  <span className="hours-value">
+                    {userData?.closingHour ? formatTime(userData.closingHour) : (isEnglish ? 'Not set' : 'Belirlenmemiş')}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Features & Services Card */}
+        <div className="info-card">
+          <div className="card-header">
+            <h2>
+              <span className="card-icon">⚡</span>
+              {isEnglish ? 'Services & Features' : 'Hizmetler ve Özellikler'}
+            </h2>
+          </div>
+          
+          <div className="card-content">
+            <div className="features-grid">
+              {features.map((feature, index) => (
+                <div key={index} className={`feature-item ${feature.isActive ? 'active' : 'inactive'}`}>
+                  <div className="feature-icon">
+                    {feature.icon}
+                  </div>
+                  
+                  <div className="feature-info">
+                    <span className="feature-name">{feature.label}</span>
+                    <span className={`feature-status ${feature.isActive ? 'enabled' : 'disabled'}`}>
+                      {feature.isActive ? (isEnglish ? 'Enabled' : 'Aktif') : (isEnglish ? 'Disabled' : 'Pasif')}
+                    </span>
+                  </div>
+                  
+                  <div className={`feature-indicator ${feature.isActive ? 'on' : 'off'}`}>
+                    {feature.isActive ? '●' : '○'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Stats Card */}
+        <div className="info-card">
+          <div className="card-header">
+            <h2>
+              <span className="card-icon">📈</span>
+              {isEnglish ? 'Quick Stats' : 'Hızlı İstatistikler'}
+            </h2>
+          </div>
+          
+          <div className="card-content">
+            <div className="stats-grid">
+              <div className="stat-item">
+                <span className="stat-number">{userData?.templateID || 'N/A'}</span>
+                <span className="stat-label">{isEnglish ? 'Template ID' : 'Şablon ID'}</span>
+              </div>
+              
+              <div className="stat-item">
+                <span className="stat-number">{features.filter(f => f.isActive).length}</span>
+                <span className="stat-label">{isEnglish ? 'Active Features' : 'Aktif Özellikler'}</span>
+              </div>
+              
+              <div className="stat-item">
+                <span className="stat-number">
+                  {userData?.openingHour && userData?.closingHour 
+                    ? Math.round(userData.closingHour - userData.openingHour) 
+                    : 0}h
+                </span>
+                <span className="stat-label">{isEnglish ? 'Daily Hours' : 'Günlük Saatler'}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

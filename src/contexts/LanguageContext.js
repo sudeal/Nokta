@@ -539,8 +539,10 @@ export const LanguageProvider = ({ children }) => {
           tr: 'Profil yükleniyor...'
         },
         error: {
-          en: 'Error',
-          tr: 'Hata',
+          general: {
+            en: 'Error',
+            tr: 'Hata'
+          },
           businessIdNotFound: {
             en: 'Business ID not found in user data.',
             tr: 'Kullanıcı verilerinde işletme ID\'si bulunamadı.'
